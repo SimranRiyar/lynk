@@ -11,7 +11,14 @@ def create_app():
     mail.init_app(app)
     socketio.init_app(app, cors_allowed_origins="*", async_mode="threading")
     csrf.init_app(app)
+    
 
+    # ── ADD THESE TWO LINES ──
+    from .models import User
+    @login_manager.user_loader
+    def load_user(user_id):
+        return User.query.get(int(user_id))
+    # ────────────────────────
     from .routes import main, init_template_filters
     app.register_blueprint(main)
     init_template_filters(app)
