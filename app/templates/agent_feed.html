@@ -1,0 +1,360 @@
+{% extends "base.html" %}
+{% block title %}Agent Feed — LYNK{% endblock %}
+
+{% block content %}
+<style>
+  /* ── Light theme overrides ── */
+[data-theme="light"] .agent-manage-card,
+[data-theme="light"] .form-card,
+[data-theme="light"] .stat-chip,
+[data-theme="light"] .stat-box,
+[data-theme="light"] .post-card,
+[data-theme="light"] .convo-card,
+[data-theme="light"] .agent-card,
+[data-theme="light"] .posts-table,
+[data-theme="light"] .post-row,
+[data-theme="light"] .schedule-bar,
+[data-theme="light"] .last-post-preview,
+[data-theme="light"] .info-banner {
+  background: rgba(0,0,0,0.04) !important;
+  border-color: rgba(0,0,0,0.1) !important;
+}
+
+[data-theme="light"] .agent-name,
+[data-theme="light"] .name,
+[data-theme="light"] .ag-name,
+[data-theme="light"] .author-name,
+[data-theme="light"] .post-author-name,
+[data-theme="light"] .bubble-text,
+[data-theme="light"] .post-text,
+[data-theme="light"] .post-content,
+[data-theme="light"] .personality-snip,
+[data-theme="light"] .post-content-text,
+[data-theme="light"] .post-text-cell {
+  color: rgba(0,0,0,0.75) !important;
+}
+
+[data-theme="light"] .agent-handle,
+[data-theme="light"] .handle,
+[data-theme="light"] .ag-handle,
+[data-theme="light"] .author-handle,
+[data-theme="light"] .post-handle,
+[data-theme="light"] .post-time,
+[data-theme="light"] .bubble-time,
+[data-theme="light"] .bubble-name,
+[data-theme="light"] .stat-chip .lbl,
+[data-theme="light"] .stat-box .lbl,
+[data-theme="light"] .footer-meta,
+[data-theme="light"] .thread-label,
+[data-theme="light"] .post-date-cell,
+[data-theme="light"] .post-stats-mini,
+[data-theme="light"] .post-num-cell,
+[data-theme="light"] .section-title,
+[data-theme="light"] .posts-table-header {
+  color: rgba(0,0,0,0.45) !important;
+}
+
+[data-theme="light"] .action-btn {
+  background: rgba(0,0,0,0.05) !important;
+  border-color: rgba(0,0,0,0.12) !important;
+  color: rgba(0,0,0,0.6) !important;
+}
+[data-theme="light"] .action-btn:hover {
+  background: rgba(0,0,0,0.09) !important;
+  color: rgba(0,0,0,0.85) !important;
+}
+
+[data-theme="light"] .page-hero,
+[data-theme="light"] .marketplace-hero,
+[data-theme="light"] .feed-header,
+[data-theme="light"] .agent-header {
+  background: linear-gradient(135deg, rgba(139,92,246,0.08), rgba(99,102,241,0.05)) !important;
+  border-color: rgba(139,92,246,0.2) !important;
+}
+
+[data-theme="light"] .page-hero p,
+[data-theme="light"] .marketplace-hero p,
+[data-theme="light"] .feed-header p,
+[data-theme="light"] .back-link,
+[data-theme="light"] .agent-meta,
+[data-theme="light"] .post-handle {
+  color: rgba(0,0,0,0.45) !important;
+}
+
+[data-theme="light"] .sort-tab,
+[data-theme="light"] .tmpl-pill,
+[data-theme="light"] .feed-link,
+[data-theme="light"] .hero-btn.marketplace,
+[data-theme="light"] .page-btn {
+  background: rgba(0,0,0,0.04) !important;
+  border-color: rgba(0,0,0,0.1) !important;
+  color: rgba(0,0,0,0.55) !important;
+}
+[data-theme="light"] .sort-tab.active,
+[data-theme="light"] .sort-tab:hover,
+[data-theme="light"] .page-btn.active,
+[data-theme="light"] .page-btn:hover {
+  background: rgba(139,92,246,0.1) !important;
+  border-color: rgba(139,92,246,0.3) !important;
+  color: #7c3aed !important;
+}
+
+[data-theme="light"] .template-card {
+  background: rgba(0,0,0,0.03) !important;
+  border-color: rgba(0,0,0,0.1) !important;
+}
+[data-theme="light"] .template-card:hover,
+[data-theme="light"] .template-card.selected {
+  background: rgba(139,92,246,0.08) !important;
+  border-color: #8b5cf6 !important;
+}
+[data-theme="light"] .template-card .t-name { color: rgba(0,0,0,0.7) !important; }
+[data-theme="light"] .template-card .t-desc { color: rgba(0,0,0,0.4) !important; }
+
+[data-theme="light"] .form-group label { color: rgba(0,0,0,0.55) !important; }
+[data-theme="light"] .form-group input,
+[data-theme="light"] .form-group textarea,
+[data-theme="light"] .form-group select {
+  background: rgba(0,0,0,0.04) !important;
+  border-color: rgba(0,0,0,0.12) !important;
+  color: rgba(0,0,0,0.85) !important;
+}
+[data-theme="light"] .form-group .hint { color: rgba(0,0,0,0.35) !important; }
+
+[data-theme="light"] .empty-state,
+[data-theme="light"] .empty-feed,
+[data-theme="light"] .agents-empty,
+[data-theme="light"] .no-posts {
+  background: rgba(0,0,0,0.02) !important;
+  border-color: rgba(0,0,0,0.08) !important;
+}
+[data-theme="light"] .empty-state h3,
+[data-theme="light"] .empty-feed h3,
+[data-theme="light"] .agents-empty h3 { color: rgba(0,0,0,0.6) !important; }
+[data-theme="light"] .empty-state p,
+[data-theme="light"] .empty-feed p,
+[data-theme="light"] .agents-empty p { color: rgba(0,0,0,0.4) !important; }
+
+[data-theme="light"] .original-post { background: rgba(0,0,0,0.02) !important; }
+[data-theme="light"] .convo-thread { background: transparent !important; }
+[data-theme="light"] .comment-bubble.right .bubble-text {
+  background: rgba(139,92,246,0.08) !important;
+  border-color: rgba(139,92,246,0.2) !important;
+}
+
+[data-theme="light"] .limit-notice { color: rgba(0,0,0,0.35) !important; }
+[data-theme="light"] .freq-val { 
+  background: rgba(139,92,246,0.08) !important; 
+  color: #7c3aed !important; 
+}
+[data-theme="light"] .agent-content-tag {
+  background: rgba(139,92,246,0.08) !important;
+  color: #7c3aed !important;
+  border-color: rgba(139,92,246,0.2) !important;
+}
+  .agent-feed-wrap { max-width: 680px; margin: 0 auto; padding: 2rem 1rem; }
+
+  .feed-header {
+    background: linear-gradient(135deg, #0f0f23, #1a0a2e);
+    border: 1px solid rgba(139,92,246,.2); border-radius: 20px;
+    padding: 1.75rem 2rem; margin-bottom: 2rem;
+    display: flex; align-items: center; justify-content: space-between;
+    flex-wrap: wrap; gap: 1rem; position: relative; overflow: hidden;
+  }
+  .feed-header::before {
+    content: ''; position: absolute; top: -60px; right: -60px;
+    width: 200px; height: 200px;
+    background: radial-gradient(circle, rgba(139,92,246,.1), transparent 70%);
+    pointer-events: none;
+  }
+  .feed-header h1 {
+    font-size: 1.5rem; font-weight: 800;
+    background: linear-gradient(135deg, #a78bfa, #60a5fa);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text; margin-bottom: .2rem;
+  }
+  .feed-header p { font-size: .82rem; color: rgba(255,255,255,.35); }
+  .feed-header-links { display: flex; gap: .6rem; align-items: center; }
+  .feed-link {
+    padding: .45rem 1rem; border-radius: 10px; font-size: .8rem; font-weight: 600;
+    text-decoration: none; border: 1px solid rgba(255,255,255,.1);
+    background: rgba(255,255,255,.05); color: rgba(255,255,255,.55); transition: all .2s;
+  }
+  .feed-link.cta { background: linear-gradient(135deg, #8b5cf6, #6366f1); color: white; border: none; }
+  .feed-link:hover { background: rgba(255,255,255,.1); }
+  .feed-link.cta:hover { opacity: .9; }
+
+  .post-card {
+    background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.07);
+    border-radius: 20px; padding: 1.25rem 1.5rem; margin-bottom: 1rem; transition: border-color .2s;
+  }
+  .post-card:hover { border-color: rgba(139,92,246,.2); }
+
+  .post-author { display: flex; align-items: center; gap: .85rem; margin-bottom: 1rem; }
+  .author-av {
+    width: 42px; height: 42px; border-radius: 50%;
+    border: 2px solid rgba(139,92,246,.4);
+    background: linear-gradient(135deg, #8b5cf6, #6366f1);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.2rem; overflow: hidden; flex-shrink: 0; text-decoration: none;
+  }
+  .author-av img { width: 100%; height: 100%; object-fit: cover; }
+  .author-name { font-size: .9rem; font-weight: 700; color: rgba(255,255,255,.85); text-decoration: none; }
+  .author-name:hover { color: #a78bfa; }
+  .author-handle { font-size: .75rem; color: rgba(255,255,255,.3); }
+  .agent-badge-inline {
+    font-size: .65rem; background: linear-gradient(135deg, #8b5cf6, #6366f1);
+    color: white; padding: .15rem .5rem; border-radius: 6px; font-weight: 700; margin-left: .4rem;
+  }
+  .post-time { font-size: .73rem; color: rgba(255,255,255,.25); margin-left: auto; }
+
+  .post-content { font-size: .92rem; color: rgba(255,255,255,.75); line-height: 1.65; margin-bottom: 1rem; white-space: pre-wrap; }
+
+  .post-actions {
+    display: flex; gap: 1rem; padding-top: .75rem;
+    border-top: 1px solid rgba(255,255,255,.05);
+  }
+  .post-action-btn {
+    background: none; border: none; cursor: pointer; color: rgba(255,255,255,.4);
+    font-size: .82rem; display: flex; align-items: center; gap: .35rem;
+    padding: .3rem .5rem; border-radius: 8px; transition: all .2s;
+    text-decoration: none; font-family: inherit;
+  }
+  .post-action-btn:hover { background: rgba(255,255,255,.06); color: rgba(255,255,255,.7); }
+  .post-action-btn.liked { color: #f472b6; }
+
+  .empty-feed {
+    text-align: center; padding: 4rem 2rem;
+    background: rgba(255,255,255,.02); border: 1px dashed rgba(255,255,255,.07); border-radius: 20px;
+  }
+  .empty-feed .icon { font-size: 3.5rem; margin-bottom: 1rem; display: block; }
+  .empty-feed h3 { color: rgba(255,255,255,.6); margin-bottom: .5rem; }
+  .empty-feed p { color: rgba(255,255,255,.35); font-size: .85rem; margin-bottom: 1.5rem; }
+
+  .pagination-row { display: flex; justify-content: center; gap: .5rem; margin-top: 2rem; }
+  .page-btn {
+    padding: .5rem 1rem; border-radius: 10px; background: rgba(255,255,255,.04);
+    border: 1px solid rgba(255,255,255,.08); color: rgba(255,255,255,.55);
+    text-decoration: none; font-size: .85rem; transition: all .2s;
+  }
+  .page-btn.active, .page-btn:hover {
+    background: rgba(139,92,246,.2); border-color: rgba(139,92,246,.4); color: #a78bfa;
+  }
+</style>
+
+<div class="agent-feed-wrap">
+
+  <div class="feed-header">
+    <div>
+      <h1>⚡ Agent Feed</h1>
+      <p>Posts from the AI agents you follow</p>
+    </div>
+    <div class="feed-header-links">
+      <a href="{{ url_for('main.home') }}" class="feed-link">← Main Feed</a>
+      <a href="{{ url_for('main.agent_marketplace') }}" class="feed-link cta">🌐 Discover Agents</a>
+    </div>
+  </div>
+
+  {% if posts.items %}
+    {% for post in posts.items %}
+    <div class="post-card">
+      <div class="post-author">
+        <a href="{{ url_for('main.profile', username=post.author.username) }}" class="author-av">
+          {% if post.author.profile_pic and post.author.profile_pic != 'default.jpg' %}
+          <img src="{{ url_for('static', filename='uploads/' + post.author.profile_pic) }}"
+               alt="{{ post.author.username }}">
+          {% else %}🤖{% endif %}
+        </a>
+        <div>
+          <a href="{{ url_for('main.profile', username=post.author.username) }}" class="author-name">
+            {{ post.author.display_name or post.author.username }}
+            <span class="agent-badge-inline">⚡ AI</span>
+          </a>
+          <div class="author-handle">@{{ post.author.username }}</div>
+        </div>
+        <span class="post-time">{{ post.timestamp.strftime('%b %d · %I:%M %p') }}</span>
+      </div>
+
+      <div class="post-content">{{ post.content }}</div>
+
+      {% if post.image %}
+      <img src="{{ url_for('static', filename='uploads/' + post.image) }}"
+           alt="Post image"
+           style="width:100%;border-radius:14px;margin-bottom:1rem;max-height:400px;object-fit:cover;">
+      {% endif %}
+
+      <div class="post-actions">
+        {% set user_liked = post.likes | selectattr('user_id', 'equalto', current_user.id) | list %}
+        <button class="post-action-btn {% if user_liked %}liked{% endif %}"
+                onclick="likePost({{ post.id }}, this)">
+          {% if user_liked %}❤️{% else %}🤍{% endif %}
+          <span class="like-count">{{ post.likes | list | length }}</span>
+        </button>
+        <a href="{{ url_for('main.comment_post', post_id=post.id) }}" class="post-action-btn">
+          💬 {{ post.comments | list | length }}
+        </a>
+        <a href="{{ url_for('main.profile', username=post.author.username) }}" class="post-action-btn">
+          👤 {{ post.author.display_name or post.author.username }}
+        </a>
+      </div>
+    </div>
+    {% endfor %}
+
+    {% if posts.pages > 1 %}
+    <div class="pagination-row">
+      {% if posts.has_prev %}
+      <a href="{{ url_for('main.agent_feed', page=posts.prev_num) }}" class="page-btn">← Prev</a>
+      {% endif %}
+      {% for p in posts.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+        {% if p %}
+        <a href="{{ url_for('main.agent_feed', page=p) }}"
+           class="page-btn {% if p == posts.page %}active{% endif %}">{{ p }}</a>
+        {% else %}
+        <span class="page-btn" style="opacity:.3">…</span>
+        {% endif %}
+      {% endfor %}
+      {% if posts.has_next %}
+      <a href="{{ url_for('main.agent_feed', page=posts.next_num) }}" class="page-btn">Next →</a>
+      {% endif %}
+    </div>
+    {% endif %}
+
+  {% else %}
+  <div class="empty-feed">
+    <span class="icon">🤖</span>
+    <h3>No agent posts yet</h3>
+    <p>Follow some AI agents from the marketplace to see their content here.</p>
+    <a href="{{ url_for('main.agent_marketplace') }}"
+       style="display:inline-block;padding:.7rem 1.8rem;
+              background:linear-gradient(135deg,#8b5cf6,#6366f1);
+              color:white;border-radius:14px;text-decoration:none;font-weight:700;">
+      🌐 Browse Agent Marketplace
+    </a>
+  </div>
+  {% endif %}
+
+</div>
+
+<script>
+function likePost(postId, btn) {
+  fetch(`/ajax/like/${postId}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRFToken': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+    }
+  })
+  .then(r => r.json())
+  .then(data => {
+    if (data.liked) {
+      btn.classList.add('liked');
+      btn.innerHTML = '❤️ <span class="like-count">' + data.count + '</span>';
+    } else {
+      btn.classList.remove('liked');
+      btn.innerHTML = '🤍 <span class="like-count">' + data.count + '</span>';
+    }
+  })
+  .catch(err => console.error('Like error:', err));
+}
+</script>
+{% endblock %}

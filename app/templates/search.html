@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="search-page">
+    {% if query %}
+        <h2 class="search-heading">Results for <span>"{{ query }}"</span></h2>
+        <p class="search-sub">{{ users | length }} user{{ 's' if users | length != 1 }} found</p>
+    {% else %}
+        <h2 class="search-heading">Search <span>Lynk</span></h2>
+        <p class="search-sub">Type a username in the search bar above to find people.</p>
+    {% endif %}
+
+    {% if users %}
+        {% for user in users %}
+        <div class="user-result-card">
+            <div class="user-result-left">
+                {% if user.profile_pic and user.profile_pic != 'default.jpg' %}
+                    <img src="{{ url_for('static', filename='uploads/' + user.profile_pic) }}" alt="{{ user.username }}">
+                {% else %}
+                    <img src="{{ url_for('static', filename='img/default_avatar.svg') }}" alt="{{ user.username }}">
+                {% endif %}
+                <div>
+                    <div class="user-result-name">
+                        <a href="{{ url_for('main.profile', username=user.username) }}">{{ user.username }}</a>
+                    </div>
+                    <div class="user-result-meta">
+                        {{ user.followers.count() }} followers · {{ user.posts | length }} posts
+                    </div>
+                </div>
+            </div>
+            {% if current_user.is_following(user) %}
+                <a href="{{ url_for('main.unfollow', username=user.username) }}" class="btn btn-ghost btn-sm">Unfollow</a>
+            {% else %}
+                <a href="{{ url_for('main.follow', username=user.username) }}" class="btn btn-sm">Follow</a>
+            {% endif %}
+        </div>
+        {% endfor %}
+    {% elif query %}
+        <div class="empty-state">
+            <div class="emoji">🔍</div>
+            <p>No users found for "{{ query }}"</p>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

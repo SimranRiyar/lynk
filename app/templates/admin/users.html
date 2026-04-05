@@ -1,0 +1,527 @@
+{% extends "base.html" %}
+{% block title %}Manage Users — Admin{% endblock %}
+
+{% block content %}
+<style>
+/* ── Light theme fixes ── */
+[data-theme="light"] .admin-header {
+    background: linear-gradient(135deg, #f3f0ff, #ede9fe) !important;
+    border-color: rgba(139,92,246,.2) !important;
+}
+[data-theme="light"] .admin-header h1 {
+    background: linear-gradient(135deg, #dc2626, #ea580c) !important;
+    -webkit-background-clip: text !important;
+    -webkit-text-fill-color: transparent !important;
+    background-clip: text !important;
+}
+[data-theme="light"] .admin-header p { color: rgba(0,0,0,.5) !important; }
+
+[data-theme="light"] .admin-nav a {
+    background: rgba(0,0,0,.04) !important;
+    border-color: rgba(0,0,0,.1) !important;
+    color: rgba(0,0,0,.55) !important;
+}
+[data-theme="light"] .admin-nav a:hover,
+[data-theme="light"] .admin-nav a.active {
+    background: rgba(220,38,38,.08) !important;
+    border-color: rgba(220,38,38,.2) !important;
+    color: #dc2626 !important;
+}
+
+[data-theme="light"] .stat-card {
+    background: rgba(0,0,0,.03) !important;
+    border-color: rgba(0,0,0,.08) !important;
+}
+[data-theme="light"] .stat-card .val {
+    background: linear-gradient(135deg, #dc2626, #ea580c) !important;
+    -webkit-background-clip: text !important;
+    -webkit-text-fill-color: transparent !important;
+    background-clip: text !important;
+}
+[data-theme="light"] .stat-card .icon { filter: none !important; }
+[data-theme="light"] .stat-card .lbl { color: rgba(0,0,0,.4) !important; }
+[data-theme="light"] .stat-card .sub { color: rgba(0,0,0,.3) !important; }
+
+[data-theme="light"] .panel,
+[data-theme="light"] .users-table,
+[data-theme="light"] .report-card,
+[data-theme="light"] .post-card {
+    background: rgba(0,0,0,.02) !important;
+    border-color: rgba(0,0,0,.08) !important;
+}
+[data-theme="light"] .panel-header {
+    border-color: rgba(0,0,0,.06) !important;
+}
+[data-theme="light"] .panel-header h3 { color: rgba(0,0,0,.7) !important; }
+[data-theme="light"] .panel-header a { color: #dc2626 !important; }
+
+[data-theme="light"] .report-row,
+[data-theme="light"] .user-row {
+    border-color: rgba(0,0,0,.05) !important;
+}
+[data-theme="light"] .report-row:hover,
+[data-theme="light"] .user-row:hover {
+    background: rgba(0,0,0,.02) !important;
+}
+
+[data-theme="light"] .user-name,
+[data-theme="light"] .post-author-name { color: rgba(0,0,0,.8) !important; }
+[data-theme="light"] .user-email,
+[data-theme="light"] .user-meta,
+[data-theme="light"] .report-meta,
+[data-theme="light"] .post-time,
+[data-theme="light"] .cell { color: rgba(0,0,0,.45) !important; }
+
+[data-theme="light"] .table-header {
+    color: rgba(0,0,0,.35) !important;
+    border-color: rgba(0,0,0,.06) !important;
+}
+[data-theme="light"] .user-row { border-color: rgba(0,0,0,.04) !important; }
+[data-theme="light"] .user-row:hover { background: rgba(0,0,0,.02) !important; }
+
+[data-theme="light"] .search-bar input {
+    background: rgba(0,0,0,.04) !important;
+    border-color: rgba(0,0,0,.1) !important;
+    color: rgba(0,0,0,.85) !important;
+}
+[data-theme="light"] .search-bar input:focus {
+    border-color: rgba(220,38,38,.3) !important;
+}
+[data-theme="light"] .search-bar button {
+    background: rgba(220,38,38,.08) !important;
+    border-color: rgba(220,38,38,.2) !important;
+    color: #dc2626 !important;
+}
+
+[data-theme="light"] .filter-tab {
+    background: rgba(0,0,0,.03) !important;
+    border-color: rgba(0,0,0,.1) !important;
+    color: rgba(0,0,0,.5) !important;
+}
+[data-theme="light"] .filter-tab:hover,
+[data-theme="light"] .filter-tab.active {
+    background: rgba(220,38,38,.08) !important;
+    border-color: rgba(220,38,38,.2) !important;
+    color: #dc2626 !important;
+}
+
+[data-theme="light"] .report-desc {
+    background: rgba(0,0,0,.03) !important;
+    color: rgba(0,0,0,.55) !important;
+    border-left-color: rgba(220,38,38,.3) !important;
+}
+[data-theme="light"] .post-preview {
+    background: rgba(0,0,0,.03) !important;
+    border-color: rgba(0,0,0,.07) !important;
+}
+[data-theme="light"] .post-content-preview {
+    background: rgba(0,0,0,.03) !important;
+    color: rgba(0,0,0,.6) !important;
+    border-left-color: rgba(0,0,0,.1) !important;
+}
+[data-theme="light"] .post-stats { color: rgba(0,0,0,.4) !important; }
+
+[data-theme="light"] .act-btn.view,
+[data-theme="light"] .p-btn.view,
+[data-theme="light"] .r-btn.view {
+    background: rgba(139,92,246,.08) !important;
+    border-color: rgba(139,92,246,.2) !important;
+    color: #7c3aed !important;
+}
+[data-theme="light"] .act-btn.ban,
+[data-theme="light"] .act-btn.delete,
+[data-theme="light"] .p-btn.delete,
+[data-theme="light"] .r-btn.delete-post {
+    background: rgba(220,38,38,.07) !important;
+    border-color: rgba(220,38,38,.2) !important;
+    color: #dc2626 !important;
+}
+[data-theme="light"] .act-btn.unban,
+[data-theme="light"] .r-btn.resolve {
+    background: rgba(16,185,129,.07) !important;
+    border-color: rgba(16,185,129,.2) !important;
+    color: #059669 !important;
+}
+[data-theme="light"] .r-btn.dismiss,
+[data-theme="light"] .act-btn {
+    background: rgba(0,0,0,.04) !important;
+    border-color: rgba(0,0,0,.1) !important;
+    color: rgba(0,0,0,.55) !important;
+}
+
+[data-theme="light"] .page-btn {
+    background: rgba(0,0,0,.03) !important;
+    border-color: rgba(0,0,0,.08) !important;
+    color: rgba(0,0,0,.5) !important;
+}
+[data-theme="light"] .page-btn.active,
+[data-theme="light"] .page-btn:hover {
+    background: rgba(220,38,38,.08) !important;
+    border-color: rgba(220,38,38,.2) !important;
+    color: #dc2626 !important;
+}
+
+[data-theme="light"] .empty-panel,
+[data-theme="light"] .empty-state { color: rgba(0,0,0,.4) !important; }
+[data-theme="light"] .empty-state { 
+    background: rgba(0,0,0,.02) !important;
+    border-color: rgba(0,0,0,.08) !important;
+}
+
+[data-theme="light"] .confirm-box {
+    background: #fff !important;
+    border-color: rgba(220,38,38,.2) !important;
+}
+[data-theme="light"] .confirm-box h4 { color: #dc2626 !important; }
+[data-theme="light"] .confirm-box p { color: rgba(0,0,0,.5) !important; }
+[data-theme="light"] .ban-reason-input {
+    background: rgba(0,0,0,.04) !important;
+    border-color: rgba(220,38,38,.15) !important;
+    color: rgba(0,0,0,.8) !important;
+}
+
+[data-theme="light"] .grid-2 .panel { background: rgba(0,0,0,.02) !important; }
+.admin-wrap { max-width: 1100px; margin: 0 auto; padding: 2rem 1rem; }
+
+.admin-header {
+    background: linear-gradient(135deg, #1a0a2e, #0d1b2a);
+    border: 1px solid rgba(239,68,68,.25);
+    border-radius: 20px; padding: 1.75rem 2rem;
+    margin-bottom: 2rem; position: relative; overflow: hidden;
+    display: flex; align-items: center; justify-content: space-between;
+    flex-wrap: wrap; gap: 1rem;
+}
+.admin-header h1 {
+    font-size: 1.6rem; font-weight: 800;
+    background: linear-gradient(135deg, #f87171, #fb923c);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+.admin-header p { color: rgba(255,255,255,.4); font-size: .85rem; margin-top: .2rem; }
+.admin-nav { display: flex; gap: .6rem; flex-wrap: wrap; }
+.admin-nav a {
+    padding: .45rem 1rem; border-radius: 10px; font-size: .82rem; font-weight: 600;
+    text-decoration: none; transition: all .2s;
+    border: 1px solid rgba(255,255,255,.1);
+    background: rgba(255,255,255,.05); color: rgba(255,255,255,.6);
+}
+.admin-nav a:hover, .admin-nav a.active {
+    background: rgba(239,68,68,.15);
+    border-color: rgba(239,68,68,.3);
+    color: #f87171;
+}
+
+.search-bar {
+    display: flex; gap: .75rem; margin-bottom: 1.5rem; align-items: center;
+}
+.search-bar input {
+    flex: 1; background: rgba(255,255,255,.05);
+    border: 1px solid rgba(255,255,255,.1); border-radius: 12px;
+    padding: .65rem 1rem; color: rgba(255,255,255,.85);
+    font-size: .9rem; outline: none; font-family: inherit;
+    transition: border-color .2s;
+}
+.search-bar input:focus { border-color: rgba(239,68,68,.4); }
+.search-bar button {
+    padding: .65rem 1.25rem; background: rgba(239,68,68,.15);
+    border: 1px solid rgba(239,68,68,.3); border-radius: 12px;
+    color: #f87171; font-size: .85rem; font-weight: 600;
+    cursor: pointer; font-family: inherit; transition: all .2s;
+}
+.search-bar button:hover { background: rgba(239,68,68,.25); }
+
+.users-table {
+    background: rgba(255,255,255,.03);
+    border: 1px solid rgba(255,255,255,.07);
+    border-radius: 18px; overflow: hidden;
+}
+.table-header {
+    display: grid; grid-template-columns: 2fr 1fr 1fr 1fr 160px;
+    padding: .75rem 1.25rem;
+    border-bottom: 1px solid rgba(255,255,255,.06);
+    font-size: .7rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .5px; color: rgba(255,255,255,.3);
+}
+.user-row {
+    display: grid; grid-template-columns: 2fr 1fr 1fr 1fr 160px;
+    padding: .9rem 1.25rem; border-bottom: 1px solid rgba(255,255,255,.04);
+    align-items: center; transition: background .2s;
+}
+.user-row:hover { background: rgba(255,255,255,.02); }
+.user-row:last-child { border-bottom: none; }
+
+.user-info { display: flex; align-items: center; gap: .75rem; }
+.user-av {
+    width: 38px; height: 38px; border-radius: 50%; flex-shrink: 0;
+    background: linear-gradient(135deg, #8b5cf6, #6366f1);
+    display: flex; align-items: center; justify-content: center;
+    font-size: .9rem; overflow: hidden;
+}
+.user-av img { width: 100%; height: 100%; object-fit: cover; }
+.user-name { font-size: .85rem; font-weight: 700; color: rgba(255,255,255,.8); }
+.user-email { font-size: .72rem; color: rgba(255,255,255,.3); margin-top: .1rem; }
+
+.cell { font-size: .82rem; color: rgba(255,255,255,.55); }
+
+.badge {
+    display: inline-block; font-size: .65rem; font-weight: 700;
+    padding: .15rem .5rem; border-radius: 6px;
+}
+.badge-banned { background: rgba(239,68,68,.15); color: #f87171; border: 1px solid rgba(239,68,68,.3); }
+.badge-admin { background: rgba(251,146,60,.15); color: #fb923c; border: 1px solid rgba(251,146,60,.3); }
+.badge-verified { background: rgba(52,211,153,.1); color: #34d399; border: 1px solid rgba(52,211,153,.2); }
+.badge-ok { background: rgba(255,255,255,.06); color: rgba(255,255,255,.4); border: 1px solid rgba(255,255,255,.1); }
+
+.actions-cell { display: flex; gap: .4rem; flex-wrap: wrap; }
+.act-btn {
+    padding: .3rem .65rem; border-radius: 8px; font-size: .72rem; font-weight: 600;
+    cursor: pointer; border: 1px solid transparent; font-family: inherit;
+    transition: all .2s; text-decoration: none; display: inline-flex; align-items: center;
+}
+.act-btn.view { background: rgba(139,92,246,.12); border-color: rgba(139,92,246,.25); color: #a78bfa; }
+.act-btn.ban { background: rgba(239,68,68,.1); border-color: rgba(239,68,68,.25); color: #f87171; }
+.act-btn.unban { background: rgba(52,211,153,.1); border-color: rgba(52,211,153,.25); color: #34d399; }
+.act-btn.delete { background: rgba(239,68,68,.08); border-color: rgba(239,68,68,.15); color: #f87171; }
+.act-btn:hover { opacity: .8; transform: scale(1.03); }
+
+.pagination-row { display: flex; justify-content: center; gap: .5rem; margin-top: 1.5rem; }
+.page-btn {
+    padding: .45rem .9rem; border-radius: 10px;
+    background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08);
+    color: rgba(255,255,255,.55); text-decoration: none; font-size: .82rem; transition: all .2s;
+}
+.page-btn.active, .page-btn:hover {
+    background: rgba(239,68,68,.15); border-color: rgba(239,68,68,.3); color: #f87171;
+}
+
+.confirm-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,.7); z-index: 9999;
+    align-items: center; justify-content: center;
+}
+.confirm-overlay.show { display: flex; }
+.confirm-box {
+    background: #1a1a2e; border: 1px solid rgba(239,68,68,.3);
+    border-radius: 20px; padding: 2rem; max-width: 380px; width: 90%; text-align: center;
+}
+.confirm-box h4 { color: #f87171; margin-bottom: .5rem; font-size: 1.1rem; }
+.confirm-box p { color: rgba(255,255,255,.5); font-size: .85rem; margin-bottom: 1rem; }
+.confirm-btns { display: flex; gap: .75rem; justify-content: center; margin-top: 1rem; }
+
+.ban-reason-input {
+    width: 100%; background: rgba(255,255,255,.05);
+    border: 1px solid rgba(239,68,68,.2); border-radius: 10px;
+    padding: .6rem .9rem; color: rgba(255,255,255,.8);
+    font-size: .85rem; font-family: inherit; outline: none;
+    margin-bottom: .75rem; box-sizing: border-box;
+}
+</style>
+
+<div class="admin-wrap">
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for cat, msg in messages %}
+    <div style="background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.25);
+                border-radius:12px;padding:.75rem 1rem;margin-bottom:1rem;
+                color:#6ee7b7;font-size:.85rem;">{{ msg }}</div>
+    {% endfor %}
+  {% endwith %}
+
+  <div class="admin-header">
+    <div>
+      <h1>👥 Manage Users</h1>
+      <p>{{ users.total }} total users — search, ban, or delete accounts.</p>
+    </div>
+    <nav class="admin-nav">
+      <a href="{{ url_for('main.admin_dashboard') }}">📊 Overview</a>
+      <a href="{{ url_for('main.admin_users') }}" class="active">👥 Users</a>
+      <a href="{{ url_for('main.admin_reports') }}">🚩 Reports</a>
+      <a href="{{ url_for('main.admin_posts') }}">📝 Posts</a>
+      <a href="{{ url_for('main.home') }}">← Back to LYNK</a>
+    </nav>
+  </div>
+
+  <form method="GET" class="search-bar">
+    <input type="text" name="q" value="{{ search }}" placeholder="Search by username…">
+    <button type="submit">🔍 Search</button>
+    {% if search %}
+    <a href="{{ url_for('main.admin_users') }}"
+       style="padding:.65rem 1rem;background:rgba(255,255,255,.05);
+              border:1px solid rgba(255,255,255,.1);border-radius:12px;
+              color:rgba(255,255,255,.5);text-decoration:none;font-size:.85rem;">
+      Clear
+    </a>
+    {% endif %}
+  </form>
+
+  <div class="users-table">
+    <div class="table-header">
+      <span>User</span>
+      <span>Joined</span>
+      <span>Posts</span>
+      <span>Status</span>
+      <span>Actions</span>
+    </div>
+
+    {% for user in users.items %}
+    <div class="user-row">
+      <div class="user-info">
+        <div class="user-av">
+          {% if user.profile_pic and user.profile_pic != 'default.jpg' %}
+          <img src="{{ url_for('static', filename='uploads/' + user.profile_pic) }}">
+          {% else %}{{ user.username[0].upper() }}{% endif %}
+        </div>
+        <div>
+          <div class="user-name">
+            @{{ user.username }}
+            {% if user.is_admin %}<span class="badge badge-admin">Admin</span>{% endif %}
+          </div>
+          <div class="user-email">{{ user.email }}</div>
+        </div>
+      </div>
+      <div class="cell">{{ user.created_at.strftime('%b %d, %Y') }}</div>
+      <div class="cell">{{ user.posts | length }}</div>
+      <div class="cell">
+        {% if user.is_banned %}
+          <span class="badge badge-banned">Banned</span>
+        {% elif user.is_verified %}
+          <span class="badge badge-verified">Verified</span>
+        {% else %}
+          <span class="badge badge-ok">Active</span>
+        {% endif %}
+      </div>
+      <div class="actions-cell">
+        <a href="{{ url_for('main.profile', username=user.username) }}"
+           class="act-btn view" target="_blank">👤</a>
+        {% if not user.is_admin %}
+          {% if user.is_banned %}
+          <form method="POST"
+                action="{{ url_for('main.admin_unban_user', user_id=user.id) }}"
+                style="display:inline;">
+            <button type="submit" class="act-btn unban">✓ Unban</button>
+          </form>
+          {% else %}
+          <button class="act-btn ban"
+                  onclick="openBanModal({{ user.id }}, '{{ user.username }}')">
+            🚫 Ban
+          </button>
+          {% endif %}
+          <button class="act-btn delete"
+                  onclick="openDeleteModal({{ user.id }}, '{{ user.username }}')">
+            🗑️
+          </button>
+        {% endif %}
+      </div>
+    </div>
+    {% else %}
+    <div style="text-align:center;padding:3rem;color:rgba(255,255,255,.3);font-size:.85rem;">
+      No users found.
+    </div>
+    {% endfor %}
+  </div>
+
+  {% if users.pages > 1 %}
+  <div class="pagination-row">
+    {% if users.has_prev %}
+    <a href="{{ url_for('main.admin_users', page=users.prev_num, q=search) }}" class="page-btn">← Prev</a>
+    {% endif %}
+    {% for p in users.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+      {% if p %}
+      <a href="{{ url_for('main.admin_users', page=p, q=search) }}"
+         class="page-btn {% if p == users.page %}active{% endif %}">{{ p }}</a>
+      {% else %}
+      <span class="page-btn" style="opacity:.3">…</span>
+      {% endif %}
+    {% endfor %}
+    {% if users.has_next %}
+    <a href="{{ url_for('main.admin_users', page=users.next_num, q=search) }}" class="page-btn">Next →</a>
+    {% endif %}
+  </div>
+  {% endif %}
+
+</div>
+
+<!-- Ban Modal -->
+<div class="confirm-overlay" id="banOverlay">
+  <div class="confirm-box">
+    <h4>🚫 Ban User?</h4>
+    <p id="banText">This user will be unable to log in.</p>
+    <input type="text" class="ban-reason-input" id="banReasonInput"
+           placeholder="Ban reason (optional)…"
+           value="Violation of community guidelines">
+    <div class="confirm-btns">
+      <button onclick="closeBanModal()"
+              style="padding:.6rem 1.4rem;background:rgba(255,255,255,.06);
+                     border:1px solid rgba(255,255,255,.1);border-radius:10px;
+                     color:rgba(255,255,255,.6);cursor:pointer;font-family:inherit;">
+        Cancel
+      </button>
+      <form id="banForm" method="POST" style="display:inline;">
+        <input type="hidden" name="reason" id="banReasonHidden">
+        <button type="submit"
+                style="padding:.6rem 1.4rem;background:rgba(239,68,68,.3);
+                       border:1px solid rgba(239,68,68,.4);border-radius:10px;
+                       color:#f87171;cursor:pointer;font-weight:700;font-family:inherit;">
+          Ban User
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Delete Modal -->
+<div class="confirm-overlay" id="deleteOverlay">
+  <div class="confirm-box">
+    <h4>🗑️ Delete User?</h4>
+    <p id="deleteText">This will permanently delete the account and all their data.</p>
+    <div class="confirm-btns">
+      <button onclick="closeDeleteModal()"
+              style="padding:.6rem 1.4rem;background:rgba(255,255,255,.06);
+                     border:1px solid rgba(255,255,255,.1);border-radius:10px;
+                     color:rgba(255,255,255,.6);cursor:pointer;font-family:inherit;">
+        Cancel
+      </button>
+      <form id="deleteForm" method="POST" style="display:inline;">
+        <button type="submit"
+                style="padding:.6rem 1.4rem;background:rgba(239,68,68,.3);
+                       border:1px solid rgba(239,68,68,.4);border-radius:10px;
+                       color:#f87171;cursor:pointer;font-weight:700;font-family:inherit;">
+          Delete Forever
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+function openBanModal(userId, username) {
+    document.getElementById('banText').textContent =
+        `@${username} will be unable to log in until unbanned.`;
+    document.getElementById('banForm').action = `/admin/users/${userId}/ban`;
+    document.getElementById('banOverlay').classList.add('show');
+}
+function closeBanModal() {
+    document.getElementById('banOverlay').classList.remove('show');
+    // sync reason input to hidden field on submit
+}
+document.getElementById('banForm').addEventListener('submit', function() {
+    document.getElementById('banReasonHidden').value =
+        document.getElementById('banReasonInput').value;
+});
+function openDeleteModal(userId, username) {
+    document.getElementById('deleteText').textContent =
+        `Permanently delete @${username} and all their posts, follows, and messages?`;
+    document.getElementById('deleteForm').action = `/admin/users/${userId}/delete`;
+    document.getElementById('deleteOverlay').classList.add('show');
+}
+function closeDeleteModal() {
+    document.getElementById('deleteOverlay').classList.remove('show');
+}
+document.getElementById('banOverlay').addEventListener('click', function(e) {
+    if (e.target === this) closeBanModal();
+});
+document.getElementById('deleteOverlay').addEventListener('click', function(e) {
+    if (e.target === this) closeDeleteModal();
+});
+</script>
+{% endblock %}

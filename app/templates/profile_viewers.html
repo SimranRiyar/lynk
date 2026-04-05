@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div style="max-width:640px; margin:0 auto;">
+    <div style="margin-bottom:24px;">
+        <a href="{{ url_for('main.profile', username=current_user.username) }}"
+           style="color:var(--muted);font-size:14px;font-weight:600;text-decoration:none;">← Back to Profile</a>
+    </div>
+
+    <div style="background:linear-gradient(135deg,var(--purple),var(--blue));
+                border-radius:24px; padding:28px 32px; margin-bottom:28px;
+                position:relative; overflow:hidden; box-shadow:0 8px 32px rgba(155,111,212,0.3);">
+        <div style="position:absolute;right:24px;top:50%;transform:translateY(-50%);font-size:72px;opacity:0.15;">👁️</div>
+        <h1 style="font-family:'Playfair Display',serif;font-size:26px;font-weight:700;color:white;margin-bottom:6px;">
+            Who Viewed Your Profile
+        </h1>
+        <p style="color:rgba(255,255,255,0.8);font-size:14px;font-weight:500;">
+            People who visited your profile in the last 7 days
+        </p>
+        <div style="margin-top:16px;display:inline-block;background:rgba(255,255,255,0.15);
+                    border-radius:12px;padding:8px 18px;backdrop-filter:blur(8px);">
+            <span style="font-size:22px;font-weight:800;color:white;">{{ viewers | length }}</span>
+            <span style="font-size:13px;color:rgba(255,255,255,0.8);font-weight:600;margin-left:6px;">
+                viewer{{ 's' if viewers | length != 1 }}
+            </span>
+        </div>
+    </div>
+
+    {% if viewers %}
+    <div class="glass-card" style="border-radius:20px; padding:8px 0;">
+        {% for view in viewers %}
+        <div style="display:flex;align-items:center;justify-content:space-between;
+                    padding:14px 22px;border-bottom:1px solid var(--border);">
+            <div style="display:flex;align-items:center;gap:14px;">
+                {% if view.viewer.profile_pic and view.viewer.profile_pic != 'default.jpg' %}
+                    <img src="{{ url_for('static', filename='uploads/' + view.viewer.profile_pic) }}"
+                         style="width:48px;height:48px;border-radius:50%;object-fit:cover;
+                                border:2.5px solid var(--pink);box-shadow:0 0 0 3px var(--pink-soft);">
+                {% else %}
+                    <img src="{{ url_for('static', filename='img/default_avatar.svg') }}"
+                         style="width:48px;height:48px;border-radius:50%;object-fit:cover;
+                                border:2.5px solid var(--pink);box-shadow:0 0 0 3px var(--pink-soft);">
+                {% endif %}
+                <div>
+                    <a href="{{ url_for('main.profile', username=view.viewer.username) }}"
+                       style="font-weight:800;font-size:15px;color:var(--text);text-decoration:none;">
+                        {{ view.viewer.display_name or view.viewer.username }}
+                    </a>
+                    {% if view.viewer.display_name %}
+                    <div style="font-size:12px;color:var(--muted);font-weight:500;">@{{ view.viewer.username }}</div>
+                    {% endif %}
+                    <div style="font-size:12px;color:var(--muted);font-weight:500;margin-top:2px;">
+                        {{ view.viewer.followers.filter_by(status='accepted').count() }} followers
+                    </div>
+                </div>
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px;">
+                <span style="font-size:11px;color:var(--muted);font-weight:600;
+                             background:var(--surface2);border:1px solid var(--border);
+                             border-radius:99px;padding:3px 10px;">
+                    {{ view.viewed_at.strftime('%b %d · %H:%M') }}
+                </span>
+                {% if not current_user.is_following(view.viewer) and view.viewer != current_user %}
+                <button class="btn btn-sm" data-follow-user="{{ view.viewer.username }}"
+                        style="font-size:12px;padding:6px 14px;">Follow Back</button>
+                {% elif current_user.is_following(view.viewer) %}
+                <span style="font-size:12px;color:var(--purple);font-weight:700;
+                             background:var(--purple-soft);border:1px solid var(--purple);
+                             border-radius:99px;padding:3px 10px;">✓ Following</span>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    <div style="text-align:center;margin-top:16px;font-size:12px;color:var(--muted);font-weight:500;">
+        Profile view history resets every 7 days
+    </div>
+
+    {% else %}
+    <div class="glass-card" style="border-radius:20px;text-align:center;padding:60px 24px;">
+        <div style="font-size:48px;margin-bottom:16px;">👁️</div>
+        <h3 style="font-family:'Playfair Display',serif;font-size:20px;font-weight:700;margin-bottom:10px;">No views yet</h3>
+        <p style="color:var(--muted);font-size:14px;font-weight:500;line-height:1.6;max-width:300px;margin:0 auto 24px;">
+            When people visit your profile, they'll show up here.
+        </p>
+        <a href="{{ url_for('main.explore') }}" class="btn">Explore People →</a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

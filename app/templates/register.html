@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="center-wrapper">
+    <div class="card auth-card">
+        <h2>Create account</h2>
+        <form method="POST" autocomplete="off">
+            <div class="form-group">
+                <label>Username</label>
+                <input type="text" name="username" placeholder="cooluser42" required autofocus>
+            </div>
+            <div class="form-group">
+                <label>Email</label>
+                <input type="email" name="email" placeholder="you@example.com" required>
+            </div>
+            <div class="form-group">
+                <label>Password</label>
+                <input type="password" name="password" placeholder="••••••••" required>
+            </div>
+            <button class="btn w-full mt-1" type="submit">Create account</button>
+        </form>
+        <p class="text-muted mt-2" style="font-size:14px; text-align:center;">
+            Already have an account?
+            <a href="{{ url_for('main.login') }}" style="color:var(--accent); font-weight:500;">Sign in</a>
+        </p>
+    </div>
+</div>
+
+{% endblock %}

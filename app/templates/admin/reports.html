@@ -1,0 +1,452 @@
+{% extends "base.html" %}
+{% block title %}Reports — Admin{% endblock %}
+
+{% block content %}
+<style>
+/* ── Light theme fixes ── */
+[data-theme="light"] .admin-header {
+    background: linear-gradient(135deg, #f3f0ff, #ede9fe) !important;
+    border-color: rgba(139,92,246,.2) !important;
+}
+[data-theme="light"] .admin-header h1 {
+    background: linear-gradient(135deg, #dc2626, #ea580c) !important;
+    -webkit-background-clip: text !important;
+    -webkit-text-fill-color: transparent !important;
+    background-clip: text !important;
+}
+[data-theme="light"] .admin-header p { color: rgba(0,0,0,.5) !important; }
+
+[data-theme="light"] .admin-nav a {
+    background: rgba(0,0,0,.04) !important;
+    border-color: rgba(0,0,0,.1) !important;
+    color: rgba(0,0,0,.55) !important;
+}
+[data-theme="light"] .admin-nav a:hover,
+[data-theme="light"] .admin-nav a.active {
+    background: rgba(220,38,38,.08) !important;
+    border-color: rgba(220,38,38,.2) !important;
+    color: #dc2626 !important;
+}
+
+[data-theme="light"] .stat-card {
+    background: rgba(0,0,0,.03) !important;
+    border-color: rgba(0,0,0,.08) !important;
+}
+[data-theme="light"] .stat-card .val {
+    background: linear-gradient(135deg, #dc2626, #ea580c) !important;
+    -webkit-background-clip: text !important;
+    -webkit-text-fill-color: transparent !important;
+    background-clip: text !important;
+}
+[data-theme="light"] .stat-card .icon { filter: none !important; }
+[data-theme="light"] .stat-card .lbl { color: rgba(0,0,0,.4) !important; }
+[data-theme="light"] .stat-card .sub { color: rgba(0,0,0,.3) !important; }
+
+[data-theme="light"] .panel,
+[data-theme="light"] .users-table,
+[data-theme="light"] .report-card,
+[data-theme="light"] .post-card {
+    background: rgba(0,0,0,.02) !important;
+    border-color: rgba(0,0,0,.08) !important;
+}
+[data-theme="light"] .panel-header {
+    border-color: rgba(0,0,0,.06) !important;
+}
+[data-theme="light"] .panel-header h3 { color: rgba(0,0,0,.7) !important; }
+[data-theme="light"] .panel-header a { color: #dc2626 !important; }
+
+[data-theme="light"] .report-row,
+[data-theme="light"] .user-row {
+    border-color: rgba(0,0,0,.05) !important;
+}
+[data-theme="light"] .report-row:hover,
+[data-theme="light"] .user-row:hover {
+    background: rgba(0,0,0,.02) !important;
+}
+
+[data-theme="light"] .user-name,
+[data-theme="light"] .post-author-name { color: rgba(0,0,0,.8) !important; }
+[data-theme="light"] .user-email,
+[data-theme="light"] .user-meta,
+[data-theme="light"] .report-meta,
+[data-theme="light"] .post-time,
+[data-theme="light"] .cell { color: rgba(0,0,0,.45) !important; }
+
+[data-theme="light"] .table-header {
+    color: rgba(0,0,0,.35) !important;
+    border-color: rgba(0,0,0,.06) !important;
+}
+[data-theme="light"] .user-row { border-color: rgba(0,0,0,.04) !important; }
+[data-theme="light"] .user-row:hover { background: rgba(0,0,0,.02) !important; }
+
+[data-theme="light"] .search-bar input {
+    background: rgba(0,0,0,.04) !important;
+    border-color: rgba(0,0,0,.1) !important;
+    color: rgba(0,0,0,.85) !important;
+}
+[data-theme="light"] .search-bar input:focus {
+    border-color: rgba(220,38,38,.3) !important;
+}
+[data-theme="light"] .search-bar button {
+    background: rgba(220,38,38,.08) !important;
+    border-color: rgba(220,38,38,.2) !important;
+    color: #dc2626 !important;
+}
+
+[data-theme="light"] .filter-tab {
+    background: rgba(0,0,0,.03) !important;
+    border-color: rgba(0,0,0,.1) !important;
+    color: rgba(0,0,0,.5) !important;
+}
+[data-theme="light"] .filter-tab:hover,
+[data-theme="light"] .filter-tab.active {
+    background: rgba(220,38,38,.08) !important;
+    border-color: rgba(220,38,38,.2) !important;
+    color: #dc2626 !important;
+}
+
+[data-theme="light"] .report-desc {
+    background: rgba(0,0,0,.03) !important;
+    color: rgba(0,0,0,.55) !important;
+    border-left-color: rgba(220,38,38,.3) !important;
+}
+[data-theme="light"] .post-preview {
+    background: rgba(0,0,0,.03) !important;
+    border-color: rgba(0,0,0,.07) !important;
+}
+[data-theme="light"] .post-content-preview {
+    background: rgba(0,0,0,.03) !important;
+    color: rgba(0,0,0,.6) !important;
+    border-left-color: rgba(0,0,0,.1) !important;
+}
+[data-theme="light"] .post-stats { color: rgba(0,0,0,.4) !important; }
+
+[data-theme="light"] .act-btn.view,
+[data-theme="light"] .p-btn.view,
+[data-theme="light"] .r-btn.view {
+    background: rgba(139,92,246,.08) !important;
+    border-color: rgba(139,92,246,.2) !important;
+    color: #7c3aed !important;
+}
+[data-theme="light"] .act-btn.ban,
+[data-theme="light"] .act-btn.delete,
+[data-theme="light"] .p-btn.delete,
+[data-theme="light"] .r-btn.delete-post {
+    background: rgba(220,38,38,.07) !important;
+    border-color: rgba(220,38,38,.2) !important;
+    color: #dc2626 !important;
+}
+[data-theme="light"] .act-btn.unban,
+[data-theme="light"] .r-btn.resolve {
+    background: rgba(16,185,129,.07) !important;
+    border-color: rgba(16,185,129,.2) !important;
+    color: #059669 !important;
+}
+[data-theme="light"] .r-btn.dismiss,
+[data-theme="light"] .act-btn {
+    background: rgba(0,0,0,.04) !important;
+    border-color: rgba(0,0,0,.1) !important;
+    color: rgba(0,0,0,.55) !important;
+}
+
+[data-theme="light"] .page-btn {
+    background: rgba(0,0,0,.03) !important;
+    border-color: rgba(0,0,0,.08) !important;
+    color: rgba(0,0,0,.5) !important;
+}
+[data-theme="light"] .page-btn.active,
+[data-theme="light"] .page-btn:hover {
+    background: rgba(220,38,38,.08) !important;
+    border-color: rgba(220,38,38,.2) !important;
+    color: #dc2626 !important;
+}
+
+[data-theme="light"] .empty-panel,
+[data-theme="light"] .empty-state { color: rgba(0,0,0,.4) !important; }
+[data-theme="light"] .empty-state { 
+    background: rgba(0,0,0,.02) !important;
+    border-color: rgba(0,0,0,.08) !important;
+}
+
+[data-theme="light"] .confirm-box {
+    background: #fff !important;
+    border-color: rgba(220,38,38,.2) !important;
+}
+[data-theme="light"] .confirm-box h4 { color: #dc2626 !important; }
+[data-theme="light"] .confirm-box p { color: rgba(0,0,0,.5) !important; }
+[data-theme="light"] .ban-reason-input {
+    background: rgba(0,0,0,.04) !important;
+    border-color: rgba(220,38,38,.15) !important;
+    color: rgba(0,0,0,.8) !important;
+}
+
+[data-theme="light"] .grid-2 .panel { background: rgba(0,0,0,.02) !important; }
+.admin-wrap { max-width: 1100px; margin: 0 auto; padding: 2rem 1rem; }
+.admin-header {
+    background: linear-gradient(135deg, #1a0a2e, #0d1b2a);
+    border: 1px solid rgba(239,68,68,.25);
+    border-radius: 20px; padding: 1.75rem 2rem;
+    margin-bottom: 2rem;
+    display: flex; align-items: center; justify-content: space-between;
+    flex-wrap: wrap; gap: 1rem;
+}
+.admin-header h1 {
+    font-size: 1.6rem; font-weight: 800;
+    background: linear-gradient(135deg, #f87171, #fb923c);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+.admin-header p { color: rgba(255,255,255,.4); font-size: .85rem; margin-top: .2rem; }
+.admin-nav { display: flex; gap: .6rem; flex-wrap: wrap; }
+.admin-nav a {
+    padding: .45rem 1rem; border-radius: 10px; font-size: .82rem; font-weight: 600;
+    text-decoration: none; transition: all .2s;
+    border: 1px solid rgba(255,255,255,.1);
+    background: rgba(255,255,255,.05); color: rgba(255,255,255,.6);
+}
+.admin-nav a:hover, .admin-nav a.active {
+    background: rgba(239,68,68,.15);
+    border-color: rgba(239,68,68,.3); color: #f87171;
+}
+
+.filter-tabs { display: flex; gap: .5rem; margin-bottom: 1.5rem; }
+.filter-tab {
+    padding: .4rem 1rem; border-radius: 20px; font-size: .82rem; font-weight: 600;
+    text-decoration: none; border: 1px solid rgba(255,255,255,.1);
+    background: rgba(255,255,255,.04); color: rgba(255,255,255,.5); transition: all .2s;
+}
+.filter-tab:hover, .filter-tab.active {
+    background: rgba(239,68,68,.15); border-color: rgba(239,68,68,.3); color: #f87171;
+}
+
+.report-card {
+    background: rgba(255,255,255,.03); border: 1px solid rgba(255,255,255,.07);
+    border-radius: 16px; padding: 1.25rem 1.5rem; margin-bottom: 1rem;
+    transition: border-color .2s;
+}
+.report-card:hover { border-color: rgba(239,68,68,.15); }
+
+.report-top {
+    display: flex; align-items: flex-start; justify-content: space-between;
+    gap: 1rem; flex-wrap: wrap; margin-bottom: .85rem;
+}
+.report-type {
+    display: inline-flex; align-items: center; gap: .4rem;
+    font-size: .72rem; font-weight: 700; padding: .2rem .65rem; border-radius: 8px;
+}
+.report-type.post { background: rgba(251,146,60,.1); color: #fb923c; border: 1px solid rgba(251,146,60,.2); }
+.report-type.user { background: rgba(239,68,68,.1); color: #f87171; border: 1px solid rgba(239,68,68,.2); }
+
+.report-reason-badge {
+    font-size: .75rem; font-weight: 700; color: #f87171;
+    background: rgba(239,68,68,.1); border: 1px solid rgba(239,68,68,.2);
+    border-radius: 6px; padding: .15rem .55rem;
+}
+.report-meta { font-size: .78rem; color: rgba(255,255,255,.35); margin-bottom: .75rem; }
+.report-desc {
+    font-size: .82rem; color: rgba(255,255,255,.55); line-height: 1.5;
+    background: rgba(255,255,255,.03); border-radius: 10px; padding: .65rem .9rem;
+    border-left: 3px solid rgba(239,68,68,.3); margin-bottom: .85rem;
+    font-style: italic;
+}
+
+.post-preview {
+    background: rgba(255,255,255,.03); border: 1px solid rgba(255,255,255,.07);
+    border-radius: 10px; padding: .75rem 1rem; margin-bottom: .85rem;
+    font-size: .82rem; color: rgba(255,255,255,.5); line-height: 1.5;
+}
+.post-preview .preview-label {
+    font-size: .68rem; text-transform: uppercase; letter-spacing: .5px;
+    color: rgba(255,255,255,.25); margin-bottom: .35rem; font-style: normal;
+}
+
+.report-actions { display: flex; gap: .5rem; flex-wrap: wrap; }
+.r-btn {
+    padding: .4rem .9rem; border-radius: 9px; font-size: .78rem; font-weight: 600;
+    cursor: pointer; font-family: inherit; transition: all .2s;
+    border: 1px solid transparent; text-decoration: none;
+    display: inline-flex; align-items: center; gap: .3rem;
+}
+.r-btn.resolve { background: rgba(52,211,153,.1); border-color: rgba(52,211,153,.25); color: #34d399; }
+.r-btn.dismiss { background: rgba(255,255,255,.05); border-color: rgba(255,255,255,.1); color: rgba(255,255,255,.5); }
+.r-btn.delete-post { background: rgba(239,68,68,.12); border-color: rgba(239,68,68,.3); color: #f87171; }
+.r-btn.view { background: rgba(139,92,246,.1); border-color: rgba(139,92,246,.25); color: #a78bfa; }
+.r-btn:hover { opacity: .8; }
+
+.status-badge {
+    font-size: .68rem; font-weight: 700; padding: .15rem .5rem; border-radius: 6px;
+}
+.status-pending { background: rgba(251,146,60,.1); color: #fb923c; border: 1px solid rgba(251,146,60,.2); }
+.status-resolved { background: rgba(52,211,153,.1); color: #34d399; border: 1px solid rgba(52,211,153,.2); }
+.status-dismissed { background: rgba(255,255,255,.06); color: rgba(255,255,255,.4); border: 1px solid rgba(255,255,255,.1); }
+
+.empty-state {
+    text-align: center; padding: 4rem 2rem;
+    background: rgba(255,255,255,.02); border: 1px dashed rgba(255,255,255,.07);
+    border-radius: 18px; color: rgba(255,255,255,.35); font-size: .85rem;
+}
+
+.pagination-row { display: flex; justify-content: center; gap: .5rem; margin-top: 1.5rem; }
+.page-btn {
+    padding: .45rem .9rem; border-radius: 10px;
+    background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08);
+    color: rgba(255,255,255,.55); text-decoration: none; font-size: .82rem; transition: all .2s;
+}
+.page-btn.active, .page-btn:hover {
+    background: rgba(239,68,68,.15); border-color: rgba(239,68,68,.3); color: #f87171;
+}
+</style>
+
+<div class="admin-wrap">
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for cat, msg in messages %}
+    <div style="background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.25);
+                border-radius:12px;padding:.75rem 1rem;margin-bottom:1rem;
+                color:#6ee7b7;font-size:.85rem;">{{ msg }}</div>
+    {% endfor %}
+  {% endwith %}
+
+  <div class="admin-header">
+    <div>
+      <h1>🚩 Reports</h1>
+      <p>Review user reports and take action on violating content.</p>
+    </div>
+    <nav class="admin-nav">
+      <a href="{{ url_for('main.admin_dashboard') }}">📊 Overview</a>
+      <a href="{{ url_for('main.admin_users') }}">👥 Users</a>
+      <a href="{{ url_for('main.admin_reports') }}" class="active">🚩 Reports</a>
+      <a href="{{ url_for('main.admin_posts') }}">📝 Posts</a>
+      <a href="{{ url_for('main.home') }}">← Back to LYNK</a>
+    </nav>
+  </div>
+
+  <div class="filter-tabs">
+    <a href="{{ url_for('main.admin_reports', status='pending') }}"
+       class="filter-tab {% if status_filter == 'pending' %}active{% endif %}">
+       🟠 Pending
+    </a>
+    <a href="{{ url_for('main.admin_reports', status='resolved') }}"
+       class="filter-tab {% if status_filter == 'resolved' %}active{% endif %}">
+       ✅ Resolved
+    </a>
+    <a href="{{ url_for('main.admin_reports', status='dismissed') }}"
+       class="filter-tab {% if status_filter == 'dismissed' %}active{% endif %}">
+       ❌ Dismissed
+    </a>
+    <a href="{{ url_for('main.admin_reports', status='all') }}"
+       class="filter-tab {% if status_filter == 'all' %}active{% endif %}">
+       📋 All
+    </a>
+  </div>
+
+  {% if reports.items %}
+    {% for report in reports.items %}
+    <div class="report-card">
+      <div class="report-top">
+        <div style="display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;">
+          {% if report.post_id %}
+          <span class="report-type post">📝 Post Report</span>
+          {% else %}
+          <span class="report-type user">👤 User Report</span>
+          {% endif %}
+          <span class="report-reason-badge">{{ report.reason }}</span>
+          <span class="status-badge status-{{ report.status }}">{{ report.status }}</span>
+        </div>
+        <span style="font-size:.75rem;color:rgba(255,255,255,.25);">
+          {{ report.created_at.strftime('%b %d, %Y · %H:%M') }}
+        </span>
+      </div>
+
+      <div class="report-meta">
+        Reported by
+        <a href="{{ url_for('main.profile', username=report.reporter.username) }}"
+           style="color:#a78bfa;text-decoration:none;font-weight:700;">
+          @{{ report.reporter.username }}
+        </a>
+        {% if report.reported_user %}
+        → against
+        <a href="{{ url_for('main.profile', username=report.reported_user.username) }}"
+           style="color:#f87171;text-decoration:none;font-weight:700;">
+          @{{ report.reported_user.username }}
+        </a>
+        {% endif %}
+      </div>
+
+      {% if report.description %}
+      <div class="report-desc">"{{ report.description }}"</div>
+      {% endif %}
+
+      {% if report.post %}
+      <div class="post-preview">
+        <div class="preview-label">Reported Post</div>
+        {{ (report.post.content or '📷 Image post') | truncate(200) }}
+      </div>
+      {% endif %}
+
+      {% if report.status == 'pending' %}
+      <div class="report-actions">
+        {% if report.post_id %}
+        <a href="{{ url_for('main.comment_post', post_id=report.post_id) }}"
+           class="r-btn view" target="_blank">👁️ View Post</a>
+        <form method="POST"
+              action="{{ url_for('main.admin_delete_reported_post', report_id=report.id) }}"
+              style="display:inline;"
+              onsubmit="return confirm('Delete this post and resolve the report?')">
+          <button type="submit" class="r-btn delete-post">🗑️ Delete Post</button>
+        </form>
+        {% endif %}
+        {% if report.reported_user %}
+        <a href="{{ url_for('main.profile', username=report.reported_user.username) }}"
+           class="r-btn view" target="_blank">👁️ View Profile</a>
+        {% endif %}
+        <form method="POST"
+              action="{{ url_for('main.admin_resolve_report', report_id=report.id) }}"
+              style="display:inline;">
+          <button type="submit" class="r-btn resolve">✅ Resolve</button>
+        </form>
+        <form method="POST"
+              action="{{ url_for('main.admin_dismiss_report', report_id=report.id) }}"
+              style="display:inline;">
+          <button type="submit" class="r-btn dismiss">❌ Dismiss</button>
+        </form>
+      </div>
+      {% else %}
+      <div style="font-size:.75rem;color:rgba(255,255,255,.25);font-style:italic;">
+        This report has been {{ report.status }}.
+      </div>
+      {% endif %}
+    </div>
+    {% endfor %}
+
+    {% if reports.pages > 1 %}
+    <div class="pagination-row">
+      {% if reports.has_prev %}
+      <a href="{{ url_for('main.admin_reports', page=reports.prev_num, status=status_filter) }}" class="page-btn">← Prev</a>
+      {% endif %}
+      {% for p in reports.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+        {% if p %}
+        <a href="{{ url_for('main.admin_reports', page=p, status=status_filter) }}"
+           class="page-btn {% if p == reports.page %}active{% endif %}">{{ p }}</a>
+        {% else %}
+        <span class="page-btn" style="opacity:.3">…</span>
+        {% endif %}
+      {% endfor %}
+      {% if reports.has_next %}
+      <a href="{{ url_for('main.admin_reports', page=reports.next_num, status=status_filter) }}" class="page-btn">Next →</a>
+      {% endif %}
+    </div>
+    {% endif %}
+
+  {% else %}
+  <div class="empty-state">
+    <div style="font-size:2.5rem;margin-bottom:.75rem;">✅</div>
+    <div style="font-weight:700;color:rgba(255,255,255,.5);margin-bottom:.4rem;">
+      No {{ status_filter }} reports
+    </div>
+    <div>LYNK is clean — nothing to review here.</div>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}

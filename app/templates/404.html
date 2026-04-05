@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}Page Not Found — LYNK{% endblock %}
+
+{% block content %}
+<style>
+.error-wrap {
+    min-height: calc(100vh - var(--nav-h) - 72px);
+    display: flex; align-items: center; justify-content: center;
+    padding: 2rem 1rem;
+}
+.error-card {
+    text-align: center; max-width: 480px; width: 100%;
+    background: var(--surface); border: 1.5px solid var(--border);
+    border-radius: 24px; padding: 3rem 2rem;
+    box-shadow: 0 8px 40px var(--shadow-md);
+    position: relative; overflow: hidden;
+}
+.error-card::before {
+    content: ''; position: absolute; top: -80px; left: 50%;
+    transform: translateX(-50%);
+    width: 300px; height: 300px;
+    background: radial-gradient(circle, var(--purple-soft), transparent 70%);
+    pointer-events: none;
+}
+.error-number {
+    font-family: 'Playfair Display', serif;
+    font-size: 7rem; font-weight: 700; line-height: 1;
+    background: linear-gradient(135deg, var(--purple), var(--pink));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text; margin-bottom: .5rem; position: relative;
+}
+.error-emoji { font-size: 3rem; margin-bottom: 1rem; display: block; }
+.error-title {
+    font-size: 1.4rem; font-weight: 800; color: var(--text);
+    margin-bottom: .5rem;
+}
+.error-desc {
+    font-size: .92rem; color: var(--muted); line-height: 1.6;
+    margin-bottom: 2rem; font-weight: 500;
+}
+.error-actions { display: flex; gap: .75rem; justify-content: center; flex-wrap: wrap; }
+</style>
+
+<div class="error-wrap">
+  <div class="error-card">
+    <div class="error-number">404</div>
+    <span class="error-emoji">🔍</span>
+    <h2 class="error-title">Page not found</h2>
+    <p class="error-desc">
+      This page doesn't exist or was moved.<br>
+      Let's get you back to somewhere familiar.
+    </p>
+    <div class="error-actions">
+      <a href="{{ url_for('main.home') }}" class="btn">🏠 Go Home</a>
+      <a href="{{ url_for('main.explore') }}" class="btn btn-ghost">🔭 Explore</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

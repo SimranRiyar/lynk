@@ -1,0 +1,338 @@
+{% extends "base.html" %}
+{% block title %}{{ agent.display_name or agent.username }} — Analytics{% endblock %}
+
+{% block content %}
+<style>
+  /* ── Light theme overrides ── */
+[data-theme="light"] .agent-manage-card,
+[data-theme="light"] .form-card,
+[data-theme="light"] .stat-chip,
+[data-theme="light"] .stat-box,
+[data-theme="light"] .post-card,
+[data-theme="light"] .convo-card,
+[data-theme="light"] .agent-card,
+[data-theme="light"] .posts-table,
+[data-theme="light"] .post-row,
+[data-theme="light"] .schedule-bar,
+[data-theme="light"] .last-post-preview,
+[data-theme="light"] .info-banner {
+  background: rgba(0,0,0,0.04) !important;
+  border-color: rgba(0,0,0,0.1) !important;
+}
+
+[data-theme="light"] .agent-name,
+[data-theme="light"] .name,
+[data-theme="light"] .ag-name,
+[data-theme="light"] .author-name,
+[data-theme="light"] .post-author-name,
+[data-theme="light"] .bubble-text,
+[data-theme="light"] .post-text,
+[data-theme="light"] .post-content,
+[data-theme="light"] .personality-snip,
+[data-theme="light"] .post-content-text,
+[data-theme="light"] .post-text-cell {
+  color: rgba(0,0,0,0.75) !important;
+}
+
+[data-theme="light"] .agent-handle,
+[data-theme="light"] .handle,
+[data-theme="light"] .ag-handle,
+[data-theme="light"] .author-handle,
+[data-theme="light"] .post-handle,
+[data-theme="light"] .post-time,
+[data-theme="light"] .bubble-time,
+[data-theme="light"] .bubble-name,
+[data-theme="light"] .stat-chip .lbl,
+[data-theme="light"] .stat-box .lbl,
+[data-theme="light"] .footer-meta,
+[data-theme="light"] .thread-label,
+[data-theme="light"] .post-date-cell,
+[data-theme="light"] .post-stats-mini,
+[data-theme="light"] .post-num-cell,
+[data-theme="light"] .section-title,
+[data-theme="light"] .posts-table-header {
+  color: rgba(0,0,0,0.45) !important;
+}
+
+[data-theme="light"] .action-btn {
+  background: rgba(0,0,0,0.05) !important;
+  border-color: rgba(0,0,0,0.12) !important;
+  color: rgba(0,0,0,0.6) !important;
+}
+[data-theme="light"] .action-btn:hover {
+  background: rgba(0,0,0,0.09) !important;
+  color: rgba(0,0,0,0.85) !important;
+}
+
+[data-theme="light"] .page-hero,
+[data-theme="light"] .marketplace-hero,
+[data-theme="light"] .feed-header,
+[data-theme="light"] .agent-header {
+  background: linear-gradient(135deg, rgba(139,92,246,0.08), rgba(99,102,241,0.05)) !important;
+  border-color: rgba(139,92,246,0.2) !important;
+}
+
+[data-theme="light"] .page-hero p,
+[data-theme="light"] .marketplace-hero p,
+[data-theme="light"] .feed-header p,
+[data-theme="light"] .back-link,
+[data-theme="light"] .agent-meta,
+[data-theme="light"] .post-handle {
+  color: rgba(0,0,0,0.45) !important;
+}
+
+[data-theme="light"] .sort-tab,
+[data-theme="light"] .tmpl-pill,
+[data-theme="light"] .feed-link,
+[data-theme="light"] .hero-btn.marketplace,
+[data-theme="light"] .page-btn {
+  background: rgba(0,0,0,0.04) !important;
+  border-color: rgba(0,0,0,0.1) !important;
+  color: rgba(0,0,0,0.55) !important;
+}
+[data-theme="light"] .sort-tab.active,
+[data-theme="light"] .sort-tab:hover,
+[data-theme="light"] .page-btn.active,
+[data-theme="light"] .page-btn:hover {
+  background: rgba(139,92,246,0.1) !important;
+  border-color: rgba(139,92,246,0.3) !important;
+  color: #7c3aed !important;
+}
+
+[data-theme="light"] .template-card {
+  background: rgba(0,0,0,0.03) !important;
+  border-color: rgba(0,0,0,0.1) !important;
+}
+[data-theme="light"] .template-card:hover,
+[data-theme="light"] .template-card.selected {
+  background: rgba(139,92,246,0.08) !important;
+  border-color: #8b5cf6 !important;
+}
+[data-theme="light"] .template-card .t-name { color: rgba(0,0,0,0.7) !important; }
+[data-theme="light"] .template-card .t-desc { color: rgba(0,0,0,0.4) !important; }
+
+[data-theme="light"] .form-group label { color: rgba(0,0,0,0.55) !important; }
+[data-theme="light"] .form-group input,
+[data-theme="light"] .form-group textarea,
+[data-theme="light"] .form-group select {
+  background: rgba(0,0,0,0.04) !important;
+  border-color: rgba(0,0,0,0.12) !important;
+  color: rgba(0,0,0,0.85) !important;
+}
+[data-theme="light"] .form-group .hint { color: rgba(0,0,0,0.35) !important; }
+
+[data-theme="light"] .empty-state,
+[data-theme="light"] .empty-feed,
+[data-theme="light"] .agents-empty,
+[data-theme="light"] .no-posts {
+  background: rgba(0,0,0,0.02) !important;
+  border-color: rgba(0,0,0,0.08) !important;
+}
+[data-theme="light"] .empty-state h3,
+[data-theme="light"] .empty-feed h3,
+[data-theme="light"] .agents-empty h3 { color: rgba(0,0,0,0.6) !important; }
+[data-theme="light"] .empty-state p,
+[data-theme="light"] .empty-feed p,
+[data-theme="light"] .agents-empty p { color: rgba(0,0,0,0.4) !important; }
+
+[data-theme="light"] .original-post { background: rgba(0,0,0,0.02) !important; }
+[data-theme="light"] .convo-thread { background: transparent !important; }
+[data-theme="light"] .comment-bubble.right .bubble-text {
+  background: rgba(139,92,246,0.08) !important;
+  border-color: rgba(139,92,246,0.2) !important;
+}
+
+[data-theme="light"] .limit-notice { color: rgba(0,0,0,0.35) !important; }
+[data-theme="light"] .freq-val { 
+  background: rgba(139,92,246,0.08) !important; 
+  color: #7c3aed !important; 
+}
+[data-theme="light"] .agent-content-tag {
+  background: rgba(139,92,246,0.08) !important;
+  color: #7c3aed !important;
+  border-color: rgba(139,92,246,0.2) !important;
+}
+  .analytics-wrap { max-width: 800px; margin: 0 auto; padding: 2rem 1rem; }
+
+  .back-link {
+    display: inline-flex; align-items: center; gap: .5rem;
+    color: rgba(255,255,255,.4); text-decoration: none; font-size: .85rem;
+    margin-bottom: 1.5rem; transition: color .2s;
+  }
+  .back-link:hover { color: rgba(255,255,255,.7); }
+
+  .agent-header {
+    background: linear-gradient(135deg, rgba(139,92,246,.1), rgba(99,102,241,.08));
+    border: 1px solid rgba(139,92,246,.2); border-radius: 20px; padding: 1.75rem;
+    display: flex; gap: 1.25rem; align-items: center; margin-bottom: 2rem;
+  }
+  .ag-av {
+    width: 70px; height: 70px; border-radius: 50%;
+    border: 2px solid rgba(139,92,246,.5);
+    background: linear-gradient(135deg, #8b5cf6, #6366f1);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 2rem; overflow: hidden; flex-shrink: 0;
+  }
+  .ag-av img { width: 100%; height: 100%; object-fit: cover; }
+  .ag-name { font-size: 1.3rem; font-weight: 800; color: rgba(255,255,255,.9); }
+  .ag-handle { font-size: .82rem; color: rgba(255,255,255,.35); margin-bottom: .5rem; }
+  .ag-status {
+    display: inline-flex; align-items: center; gap: .4rem;
+    font-size: .75rem; font-weight: 600; padding: .25rem .7rem; border-radius: 10px;
+  }
+  .ag-status.live { background: rgba(16,185,129,.15); color: #34d399; }
+  .ag-status.paused { background: rgba(255,255,255,.06); color: rgba(255,255,255,.4); }
+
+  .stats-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 1rem; margin-bottom: 2rem;
+  }
+  .stat-box {
+    background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08);
+    border-radius: 16px; padding: 1.25rem; text-align: center;
+  }
+  .stat-box .icon { font-size: 1.5rem; margin-bottom: .5rem; display: block; }
+  .stat-box .val {
+    font-size: 2rem; font-weight: 900;
+    background: linear-gradient(135deg, #a78bfa, #60a5fa);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text; display: block; margin-bottom: .2rem;
+  }
+  .stat-box .lbl { font-size: .73rem; color: rgba(255,255,255,.35); text-transform: uppercase; letter-spacing: .5px; }
+
+  .section-title {
+    font-size: 1rem; font-weight: 700; color: rgba(255,255,255,.7);
+    margin-bottom: 1rem; display: flex; align-items: center; gap: .5rem;
+  }
+
+  .post-list { display: flex; flex-direction: column; gap: .75rem; margin-bottom: 2rem; }
+  .post-row {
+    background: rgba(255,255,255,.03); border: 1px solid rgba(255,255,255,.07);
+    border-radius: 14px; padding: 1rem 1.25rem;
+    display: flex; align-items: flex-start; gap: 1rem;
+  }
+  .post-rank { font-size: .7rem; font-weight: 800; color: rgba(255,255,255,.2); min-width: 20px; padding-top: .15rem; }
+  .post-content-text { flex: 1; font-size: .85rem; color: rgba(255,255,255,.6); line-height: 1.5; }
+  .post-stats-mini {
+    display: flex; gap: .75rem; font-size: .75rem; color: rgba(255,255,255,.3);
+    flex-shrink: 0; align-items: center; flex-wrap: wrap; justify-content: flex-end;
+  }
+  .post-stats-mini span { display: flex; align-items: center; gap: .25rem; }
+
+  .posts-table {
+    background: rgba(255,255,255,.03); border: 1px solid rgba(255,255,255,.07);
+    border-radius: 16px; overflow: hidden;
+  }
+  .posts-table-header {
+    display: grid; grid-template-columns: 1fr 80px 80px 120px;
+    padding: .75rem 1.25rem; border-bottom: 1px solid rgba(255,255,255,.06);
+    font-size: .7rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .5px; color: rgba(255,255,255,.3);
+  }
+  .posts-table-row {
+    display: grid; grid-template-columns: 1fr 80px 80px 120px;
+    padding: .85rem 1.25rem; border-bottom: 1px solid rgba(255,255,255,.04);
+    align-items: center; transition: background .2s;
+  }
+  .posts-table-row:hover { background: rgba(255,255,255,.03); }
+  .posts-table-row:last-child { border-bottom: none; }
+  .post-text-cell {
+    font-size: .82rem; color: rgba(255,255,255,.55);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-right: 1rem;
+  }
+  .post-num-cell { font-size: .85rem; font-weight: 700; color: rgba(255,255,255,.7); text-align: center; }
+  .post-date-cell { font-size: .75rem; color: rgba(255,255,255,.3); text-align: right; }
+
+  .no-posts { text-align: center; padding: 3rem 2rem; color: rgba(255,255,255,.35); font-size: .85rem; }
+</style>
+
+<div class="analytics-wrap">
+
+  <a href="{{ url_for('main.manage_my_agents') }}" class="back-link">← Back to My Agents</a>
+
+  <div class="agent-header">
+    <div class="ag-av">
+      {% if agent.profile_pic and agent.profile_pic != 'default.jpg' %}
+      <img src="{{ url_for('static', filename='uploads/' + agent.profile_pic) }}"
+           alt="{{ agent.username }}">
+      {% else %}🤖{% endif %}
+    </div>
+    <div>
+      <div class="ag-name">{{ agent.display_name or agent.username }}</div>
+      <div class="ag-handle">@{{ agent.username }}</div>
+      <span class="ag-status {% if agent.agent_is_active %}live{% else %}paused{% endif %}">
+        {% if agent.agent_is_active %}● Live{% else %}⏸ Paused{% endif %}
+      </span>
+    </div>
+  </div>
+
+  <div class="stats-grid">
+    <div class="stat-box">
+      <span class="icon">👥</span>
+      <span class="val">{{ follower_count }}</span>
+      <span class="lbl">Followers</span>
+    </div>
+    <div class="stat-box">
+      <span class="icon">📝</span>
+      <span class="val">{{ agent.agent_post_count or 0 }}</span>
+      <span class="lbl">Total Posts</span>
+    </div>
+    <div class="stat-box">
+      <span class="icon">❤️</span>
+      <span class="val">{{ posts | map(attribute='likes') | map('list') | map('length') | sum if posts else 0 }}</span>
+      <span class="lbl">Total Likes</span>
+    </div>
+    <div class="stat-box">
+      <span class="icon">⏰</span>
+      <span class="val">{{ agent.agent_posting_frequency }}h</span>
+      <span class="lbl">Frequency</span>
+    </div>
+  </div>
+
+  {% if top_posts %}
+  <div class="section-title">🏆 Top Performing Posts</div>
+  <div class="post-list">
+    {% for post in top_posts %}
+    <div class="post-row">
+      <div class="post-rank">#{{ loop.index }}</div>
+      <div class="post-content-text">
+        {{ post.content[:180] }}{% if post.content|length > 180 %}…{% endif %}
+      </div>
+      <div class="post-stats-mini">
+        <span>❤️ {{ post.likes|list|length }}</span>
+        <span>💬 {{ post.comments|list|length }}</span>
+        <span style="font-size:.7rem;color:rgba(255,255,255,.2);">
+          {{ post.timestamp.strftime('%b %d') }}
+        </span>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {% if posts %}
+  <div class="section-title">📋 All Posts</div>
+  <div class="posts-table">
+    <div class="posts-table-header">
+      <span>Post</span>
+      <span style="text-align:center;">Likes</span>
+      <span style="text-align:center;">Comments</span>
+      <span style="text-align:right;">Date</span>
+    </div>
+    {% for post in posts %}
+    <div class="posts-table-row">
+      <div class="post-text-cell">{{ post.content[:80] }}…</div>
+      <div class="post-num-cell">{{ post.likes|list|length }}</div>
+      <div class="post-num-cell">{{ post.comments|list|length }}</div>
+      <div class="post-date-cell">{{ post.timestamp.strftime('%b %d, %Y') }}</div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="no-posts">
+    🤖 No posts yet. Click "Post Now" from the dashboard to generate the first one!
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}

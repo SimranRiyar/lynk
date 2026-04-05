@@ -1,0 +1,205 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div style="max-width:640px; margin:0 auto;">
+
+    <!-- Original Post -->
+    <article class="post-card" style="margin-bottom:24px;">
+        <div class="post-meta">
+            {% if post.author.profile_pic and post.author.profile_pic != 'default.jpg' %}
+                <img src="{{ url_for('static', filename='uploads/' + post.author.profile_pic) }}"
+                     alt="{{ post.author.username }}" class="avatar">
+            {% else %}
+                <img src="{{ url_for('static', filename='img/default_avatar.svg') }}"
+                     alt="{{ post.author.username }}" class="avatar">
+            {% endif %}
+            <div style="flex:1;">
+                <div class="username">
+                    <a href="{{ url_for('main.profile', username=post.author.username) }}">
+                        {{ post.author.display_name or post.author.username }}
+                    </a>
+                </div>
+                <div class="time">{{ post.timestamp.strftime('%b %d, %Y · %H:%M') }}</div>
+            </div>
+            <!-- Report button for other users' posts -->
+            {% if post.author != current_user %}
+            <div style="position:relative;" id="postMenuWrap">
+                <button onclick="togglePostMenu()"
+                        style="background:none;border:none;font-size:18px;cursor:pointer;
+                               color:var(--muted);padding:4px 8px;border-radius:8px;
+                               transition:all 0.2s;"
+                        onmouseover="this.style.background='var(--surface2)'"
+                        onmouseout="this.style.background='none'">···</button>
+                <div id="postMenu"
+                     style="display:none;position:absolute;top:36px;right:0;
+                            background:var(--surface);border:1.5px solid var(--border);
+                            border-radius:14px;padding:8px;z-index:50;
+                            box-shadow:0 8px 24px var(--shadow-md);min-width:180px;white-space:nowrap;">
+                    <a href="{{ url_for('main.report_post', post_id=post.id) }}"
+                       style="display:block;padding:9px 12px;border-radius:8px;font-size:14px;
+                              font-weight:700;color:#d95f7a;text-decoration:none;transition:background 0.2s;"
+                       onmouseover="this.style.background='rgba(217,95,122,0.1)'"
+                       onmouseout="this.style.background='none'">🚩 Report Post</a>
+                    <a href="{{ url_for('main.report_user', username=post.author.username) }}"
+                       style="display:block;padding:9px 12px;border-radius:8px;font-size:14px;
+                              font-weight:700;color:#d95f7a;text-decoration:none;transition:background 0.2s;"
+                       onmouseover="this.style.background='rgba(217,95,122,0.1)'"
+                       onmouseout="this.style.background='none'">🚩 Report @{{ post.author.username }}</a>
+                    <hr style="border:none;border-top:1px solid var(--border);margin:4px 0;">
+                    <form method="POST" action="{{ url_for('main.mute_user', username=post.author.username) }}" style="margin:0;">
+                        <button type="submit"
+                                style="width:100%;text-align:left;background:none;border:none;
+                                       padding:9px 12px;border-radius:8px;font-size:14px;
+                                       font-weight:700;color:var(--muted);cursor:pointer;
+                                       font-family:'Nunito',sans-serif;transition:background 0.2s;"
+                                onmouseover="this.style.background='var(--surface2)'"
+                                onmouseout="this.style.background='none'">
+                            🔕 Mute @{{ post.author.username }}
+                        </button>
+                    </form>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Sensitive content overlay for image -->
+        {% if post.image %}
+        <div style="margin-bottom:16px; position:relative; overflow:hidden; border-radius:12px;">
+            {% if post.is_sensitive %}
+            <div id="sensitiveOverlay"
+                 style="position:absolute;inset:0;z-index:10;display:flex;flex-direction:column;
+                        align-items:center;justify-content:center;background:rgba(0,0,0,0.65);
+                        backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+                        border-radius:12px;cursor:pointer;"
+                 onclick="revealSensitive()">
+                <div style="font-size:32px;margin-bottom:10px;">⚠️</div>
+                <div style="color:white;font-weight:800;font-size:15px;margin-bottom:6px;">Sensitive Content</div>
+                <div style="color:rgba(255,255,255,0.75);font-size:13px;font-weight:500;
+                            text-align:center;max-width:220px;line-height:1.5;">
+                    This post may contain sensitive content.<br>Tap to view.
+                </div>
+            </div>
+            {% endif %}
+            <img src="{{ url_for('static', filename='uploads/' + post.image) }}"
+                 id="postMainImg"
+                 style="width:100%; max-height:480px; object-fit:cover;
+                        border-radius:12px; border:1.5px solid var(--border);
+                        {% if post.is_sensitive %}filter:blur(16px);{% endif %}">
+        </div>
+        {% endif %}
+
+        <!-- Sensitive text overlay -->
+        {% if post.content %}
+        {% if post.is_sensitive and not post.image %}
+        <div style="position:relative;margin-bottom:18px;">
+            <div id="sensitiveTextOverlay"
+                 style="position:absolute;inset:0;z-index:10;display:flex;align-items:center;
+                        justify-content:center;background:var(--surface2);border-radius:8px;
+                        cursor:pointer;padding:16px;"
+                 onclick="revealSensitiveText()">
+                <div style="text-align:center;">
+                    <div style="font-size:24px;margin-bottom:8px;">⚠️</div>
+                    <div style="font-weight:700;font-size:14px;color:var(--text);">Sensitive Content</div>
+                    <div style="font-size:12px;color:var(--muted);font-weight:500;margin-top:4px;">Tap to reveal</div>
+                </div>
+            </div>
+            <div id="postTextContent" style="filter:blur(5px);pointer-events:none;user-select:none;">
+                <div class="post-body">{{ post.content | render_content | safe }}</div>
+            </div>
+        </div>
+        {% else %}
+        <div class="post-body">{{ post.content | render_content | safe }}</div>
+        {% endif %}
+        {% endif %}
+
+        <!-- Post stats row -->
+        <div style="display:flex;align-items:center;gap:16px;font-size:13px;color:var(--muted);
+                    font-weight:600;padding-top:12px;border-top:1px solid var(--border);">
+            <span>❤️ {{ post.reactions | length }}</span>
+            <span>💬 {{ post.comments | length }}</span>
+            <span>👁️ {{ post.view_count or 0 }}</span>
+            {% if post.is_sensitive %}
+            <span style="background:rgba(232,72,85,0.1);color:#e84855;border:1px solid rgba(232,72,85,0.3);
+                         border-radius:99px;padding:2px 10px;font-size:11px;font-weight:700;">⚠️ Sensitive</span>
+            {% endif %}
+        </div>
+    </article>
+
+    <!-- Comment Compose -->
+    <div class="compose-box" style="margin-bottom:24px;">
+        {% if current_user.can_comment_on(post.author) %}
+        <form method="POST">
+            <textarea name="content" placeholder="Write a comment…" class="w-full"></textarea>
+            <div class="compose-footer">
+                <a href="{{ url_for('main.home') }}" class="btn btn-ghost">← Back</a>
+                <button type="submit" class="btn">Comment →</button>
+            </div>
+        </form>
+        {% else %}
+        <div style="text-align:center;padding:20px;color:var(--muted);">
+            <div style="font-size:24px;margin-bottom:8px;">🔇</div>
+            <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:4px;">Comments are restricted</div>
+            <div style="font-size:13px;font-weight:500;">{{ post.author.username }} has limited who can comment on their posts.</div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Comments List -->
+    {% if post.comments %}
+    <div class="comment-list">
+        {% for comment in post.comments | sort(attribute='timestamp', reverse=True) %}
+        <div class="comment-item">
+            <div style="display:flex; align-items:center; gap:10px; margin-bottom:8px;">
+                {% if comment.author.profile_pic and comment.author.profile_pic != 'default.jpg' %}
+                    <img src="{{ url_for('static', filename='uploads/' + comment.author.profile_pic) }}"
+                         style="width:32px;height:32px;border-radius:50%;object-fit:cover;border:2px solid var(--pink);">
+                {% else %}
+                    <img src="{{ url_for('static', filename='img/default_avatar.svg') }}"
+                         style="width:32px;height:32px;border-radius:50%;object-fit:cover;border:2px solid var(--pink);">
+                {% endif %}
+                <div style="flex:1;">
+                    <div class="comment-author">
+                        <a href="{{ url_for('main.profile', username=comment.author.username) }}"
+                           style="color:var(--purple);text-decoration:none;">{{ comment.author.username }}</a>
+                    </div>
+                    <div class="comment-time">{{ comment.timestamp.strftime('%b %d, %Y · %H:%M') }}</div>
+                </div>
+            </div>
+            <div class="comment-text">{{ comment.content | render_content | safe }}</div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <div class="emoji">💬</div>
+        <p>No comments yet. Be the first!</p>
+    </div>
+    {% endif %}
+
+</div>
+
+<script>
+function revealSensitive() {
+    document.getElementById('sensitiveOverlay').style.display = 'none';
+    document.getElementById('postMainImg').style.filter = 'none';
+}
+function revealSensitiveText() {
+    document.getElementById('sensitiveTextOverlay').style.display = 'none';
+    const el = document.getElementById('postTextContent');
+    el.style.filter = 'none';
+    el.style.pointerEvents = 'auto';
+    el.style.userSelect = 'auto';
+}
+function togglePostMenu() {
+    const m = document.getElementById('postMenu');
+    m.style.display = m.style.display === 'none' ? 'block' : 'none';
+}
+document.addEventListener('click', (e) => {
+    const wrap = document.getElementById('postMenuWrap');
+    if (wrap && !wrap.contains(e.target)) {
+        document.getElementById('postMenu').style.display = 'none';
+    }
+});
+</script>
+
+{% endblock %}

@@ -1,0 +1,151 @@
+{% extends "base.html" %}
+{% block content %}
+
+<style>
+.story-creator {
+    max-width: 480px; margin: 0 auto;
+}
+.story-preview {
+    width: 100%; height: 320px; border-radius: 20px;
+    display: flex; align-items: center; justify-content: center;
+    position: relative; overflow: hidden; margin-bottom: 20px;
+    border: 2px solid var(--border);
+    transition: background 0.3s;
+}
+.story-preview img {
+    width: 100%; height: 100%; object-fit: cover; position: absolute; inset: 0;
+}
+.story-preview-text {
+    position: relative; z-index: 1; font-size: 22px; font-weight: 700;
+    text-align: center; padding: 20px; word-break: break-word; line-height: 1.5;
+}
+.color-btn {
+    width: 32px; height: 32px; border-radius: 50%; border: 3px solid transparent;
+    cursor: pointer; transition: transform 0.2s;
+    flex-shrink: 0;
+}
+.color-btn:hover, .color-btn.selected { transform: scale(1.2); border-color: var(--text); }
+</style>
+
+<div class="story-creator">
+    <div style="margin-bottom:24px;">
+        <a href="{{ url_for('main.home') }}"
+           style="color:var(--muted); font-size:14px; font-weight:600; text-decoration:none;">
+            ← Back
+        </a>
+    </div>
+
+    <h2 style="font-family:'Playfair Display',serif; font-size:24px; font-weight:700; margin-bottom:20px;">
+        ✨ Create a Story
+    </h2>
+
+    <!-- Preview -->
+    <div class="story-preview" id="storyPreview" style="background:#9B6FD4;">
+        <img id="storyImgPreview" style="display:none;">
+        <div class="story-preview-text" id="storyTextPreview" style="color:white;">
+            Your story preview...
+        </div>
+    </div>
+
+    <form method="POST" enctype="multipart/form-data">
+
+        <!-- Tabs -->
+        <div style="display:flex; gap:10px; margin-bottom:20px;">
+            <button type="button" onclick="showTab('text')" id="tab-text"
+                    class="btn" style="flex:1; padding:10px;">📝 Text</button>
+            <button type="button" onclick="showTab('photo')" id="tab-photo"
+                    class="btn btn-ghost" style="flex:1; padding:10px;">📷 Photo</button>
+        </div>
+
+        <!-- Text tab -->
+        <div id="tab-text-content">
+            <div class="form-group">
+                <label>Your Story Text</label>
+                <textarea name="text" id="storyText" placeholder="What's your story?"
+                          rows="3" maxlength="500"
+                          oninput="document.getElementById('storyTextPreview').textContent = this.value || 'Your story preview...'"></textarea>
+            </div>
+
+            <div class="form-group">
+                <label>Background Color</label>
+                <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:8px;">
+                    {% for color in bg_colors %}
+                    <div class="color-btn {% if loop.first %}selected{% endif %}"
+                         style="background:{{ color }};"
+                         onclick="selectColor('{{ color }}', this)"></div>
+                    {% endfor %}
+                </div>
+                <input type="hidden" name="bg_color" id="bgColorInput" value="{{ bg_colors[0] }}">
+            </div>
+        </div>
+
+        <!-- Photo tab -->
+        <div id="tab-photo-content" style="display:none;">
+            <div class="form-group">
+                <label>Upload Photo</label>
+                <label style="display:inline-flex; align-items:center; gap:10px;
+                              padding:10px 20px; border-radius:12px;
+                              background:var(--surface2); border:1.5px solid var(--border);
+                              cursor:pointer; font-size:14px; font-weight:700; color:var(--muted);
+                              transition:all 0.2s;"
+                       onmouseover="this.style.borderColor='var(--purple)';this.style.color='var(--purple)';this.style.background='var(--purple-soft)'"
+                       onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--muted)';this.style.background='var(--surface2)'">
+                    📷 Choose Photo
+                    <input type="file" name="image" accept="image/*"
+                           style="display:none;" onchange="previewStoryImg(this); updateStoryFileName(this)">
+                </label>
+                <span id="storyFileName" style="font-size:13px;color:var(--muted);font-weight:500;margin-left:10px;">No file chosen</span>
+            </div>
+            <div class="form-group">
+                <label>Caption (optional)</label>
+                <input type="text" name="text" placeholder="Add a caption…"
+                       oninput="document.getElementById('storyTextPreview').textContent = this.value">
+            </div>
+        </div>
+
+        <input type="hidden" name="text_color" value="#ffffff">
+
+        <button type="submit" class="btn w-full" style="margin-top:8px;">
+            Share Story ✨
+        </button>
+    </form>
+</div>
+
+<script>
+function showTab(tab) {
+    document.getElementById('tab-text-content').style.display = tab === 'text' ? 'block' : 'none';
+    document.getElementById('tab-photo-content').style.display = tab === 'photo' ? 'block' : 'none';
+    document.getElementById('tab-text').className = tab === 'text' ? 'btn' : 'btn btn-ghost';
+    document.getElementById('tab-photo').className = tab === 'photo' ? 'btn' : 'btn btn-ghost';
+    document.getElementById('tab-text').style.flex = '1';
+    document.getElementById('tab-photo').style.flex = '1';
+    document.getElementById('tab-text').style.padding = '10px';
+    document.getElementById('tab-photo').style.padding = '10px';
+}
+
+function selectColor(color, el) {
+    document.getElementById('storyPreview').style.background = color;
+    document.getElementById('bgColorInput').value = color;
+    document.querySelectorAll('.color-btn').forEach(b => b.classList.remove('selected'));
+    el.classList.add('selected');
+}
+
+function previewStoryImg(input) {
+    if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        reader.onload = e => {
+            const img = document.getElementById('storyImgPreview');
+            img.src = e.target.result;
+            img.style.display = 'block';
+        };
+        reader.readAsDataURL(input.files[0]);
+    }
+}
+function updateStoryFileName(input) {
+    if (input.files && input.files[0]) {
+        document.getElementById('storyFileName').textContent = input.files[0].name;
+    }
+}
+</script>
+
+{% endblock %}

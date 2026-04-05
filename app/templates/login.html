@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="center-wrapper">
+    <div class="glass-card" style="width:400px;">
+        <h2 style="margin-bottom:20px;">Welcome Back</h2>
+
+        <form method="POST">
+            <label>Email</label>
+            <input type="email" name="email" required>
+
+            <label>Password</label>
+            <input type="password" name="password" required>
+
+            <button class="btn" style="width:100%; margin-top:10px;">
+                Login
+            </button>
+        </form>
+
+        <p style="margin-top:20px; font-size:14px;">
+            Don’t have an account?
+            <a href="{{ url_for('main.register') }}">Register</a>
+        </p>
+    </div>
+</div>
+
+{% endblock %}

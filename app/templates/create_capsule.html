@@ -1,0 +1,150 @@
+{% extends "base.html" %}
+{% block content %}
+
+<style>
+.capsule-creator {
+    max-width: 560px; margin: 0 auto;
+}
+.capsule-preview {
+    background: linear-gradient(135deg, #1a0a2e, #2d1060);
+    border-radius: 24px; padding: 32px;
+    text-align: center; margin-bottom: 28px;
+    position: relative; overflow: hidden;
+    box-shadow: 0 16px 48px rgba(155,111,212,0.4);
+    border: 1px solid rgba(155,111,212,0.3);
+    min-height: 180px;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+}
+.capsule-preview::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: radial-gradient(ellipse at 50% 0%, rgba(155,111,212,0.3) 0%, transparent 70%);
+}
+.capsule-preview .lock-icon {
+    font-size: 48px; margin-bottom: 12px;
+    position: relative; z-index: 1;
+    animation: floatLock 3s ease-in-out infinite;
+}
+@keyframes floatLock {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-8px); }
+}
+.capsule-preview .preview-text {
+    color: rgba(255,255,255,0.9); font-size: 16px;
+    font-weight: 600; line-height: 1.6;
+    position: relative; z-index: 1;
+    max-width: 400px;
+}
+.capsule-preview .unlock-date {
+    margin-top: 12px; font-size: 13px;
+    color: rgba(233,145,192,0.9); font-weight: 700;
+    position: relative; z-index: 1;
+}
+.stars {
+    position: absolute; inset: 0; pointer-events: none;
+}
+.star {
+    position: absolute; width: 3px; height: 3px;
+    border-radius: 50%; background: white;
+    animation: twinkle 2s infinite;
+}
+@keyframes twinkle {
+    0%, 100% { opacity: 0.2; }
+    50% { opacity: 1; }
+}
+</style>
+
+<div class="capsule-creator">
+
+    <div style="margin-bottom:24px;">
+        <a href="{{ url_for('main.my_capsules') }}"
+           style="color:var(--muted);font-size:14px;font-weight:600;text-decoration:none;">
+            ← My Capsules
+        </a>
+    </div>
+
+    <h2 style="font-family:'Playfair Display',serif;font-size:28px;font-weight:700;margin-bottom:8px;">
+        🔒 Seal a Memory
+    </h2>
+    <p style="color:var(--muted);font-size:14px;font-weight:500;margin-bottom:28px;line-height:1.6;">
+        Write something meaningful. It will be locked until your chosen date — no editing, no peeking.
+    </p>
+
+    <!-- Preview -->
+    <div class="capsule-preview" id="capsulePreview">
+        <div class="stars" id="starsContainer"></div>
+        <div class="lock-icon">🔒</div>
+        <div class="preview-text" id="previewText">Your memory will appear here…</div>
+        <div class="unlock-date" id="previewDate">Pick an unlock date below</div>
+    </div>
+
+    <form method="POST" enctype="multipart/form-data">
+
+        <div class="form-group">
+            <label>Your Message</label>
+            <textarea name="content" rows="5" placeholder="Write your memory, message, or wish…"
+                      id="capsuleContent" maxlength="1000"
+                      oninput="document.getElementById('previewText').textContent = this.value || 'Your memory will appear here…'; document.getElementById('charCount').textContent = this.value.length"
+                      style="resize:vertical;"></textarea>
+            <div style="text-align:right;font-size:12px;color:var(--muted);margin-top:4px;">
+                <span id="charCount">0</span>/1000
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label>Attach an Image (optional)</label>
+            <label style="display:inline-flex;align-items:center;gap:10px;
+                          padding:10px 20px;border-radius:12px;
+                          background:var(--surface2);border:1.5px solid var(--border);
+                          cursor:pointer;font-size:14px;font-weight:700;color:var(--muted);
+                          transition:all 0.2s;"
+                   onmouseover="this.style.borderColor='var(--purple)';this.style.color='var(--purple)';this.style.background='var(--purple-soft)'"
+                   onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--muted)';this.style.background='var(--surface2)'">
+                📷 Choose Image
+                <input type="file" name="image" accept="image/*" style="display:none;"
+                       onchange="document.getElementById('capsuleImgName').textContent = this.files[0]?.name || 'No file chosen'">
+            </label>
+            <span id="capsuleImgName" style="font-size:13px;color:var(--muted);font-weight:500;margin-left:10px;">No file chosen</span>
+        </div>
+
+        <div class="form-group">
+            <label>🗓 Unlock Date</label>
+            <input type="date" name="unlock_at" id="unlockDate"
+                   min="{{ min_date }}" max="{{ max_date }}"
+                   onchange="updatePreviewDate(this.value)"
+                   style="font-family:'Nunito',sans-serif;font-size:15px;cursor:pointer;">
+            <div style="font-size:12px;color:var(--muted);margin-top:6px;font-weight:500;">
+                Minimum 1 day from now · Maximum 5 years
+            </div>
+        </div>
+
+        <button type="submit" class="btn w-full" style="margin-top:8px;padding:14px;">
+            🔒 Seal the Capsule
+        </button>
+    </form>
+</div>
+
+<script>
+// generate random stars
+const container = document.getElementById('starsContainer');
+for (let i = 0; i < 20; i++) {
+    const star = document.createElement('div');
+    star.className = 'star';
+    star.style.left = Math.random() * 100 + '%';
+    star.style.top = Math.random() * 100 + '%';
+    star.style.animationDelay = Math.random() * 2 + 's';
+    star.style.opacity = Math.random() * 0.8;
+    container.appendChild(star);
+}
+
+function updatePreviewDate(val) {
+    if (!val) return;
+    const d = new Date(val);
+    const options = { year: 'numeric', month: 'long', day: 'numeric' };
+    document.getElementById('previewDate').textContent =
+        '🗓 Opens ' + d.toLocaleDateString('en-US', options);
+}
+</script>
+
+{% endblock %}

@@ -1,0 +1,614 @@
+{% extends "base.html" %}
+{% block content %}
+
+<style>
+.profile-page { max-width: 780px; margin: 0 auto; }
+
+.profile-header {
+    background: var(--surface); border: 1.5px solid var(--border);
+    border-radius: 24px; padding: 32px;
+    margin-bottom: 24px; box-shadow: 0 4px 24px var(--shadow);
+    position: relative; overflow: visible;   /* ← FIXED */
+}
+.profile-header::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0;
+    height: 80px;
+    background: linear-gradient(135deg, var(--purple), var(--pink));
+    opacity: 0.1;
+}
+.profile-header-inner {
+    display: flex; align-items: flex-start; gap: 28px;
+    position: relative; z-index: 1;
+}
+.profile-avatar-wrap { position: relative; flex-shrink: 0; }
+.profile-avatar-wrap img {
+    width: 96px; height: 96px; border-radius: 50%; object-fit: cover;
+    border: 3px solid var(--pink); box-shadow: 0 0 0 5px var(--pink-soft);
+}
+.profile-info { flex: 1; min-width: 0; }
+.profile-name-row {
+    display: flex; align-items: center; gap: 10px;
+    flex-wrap: wrap; margin-bottom: 4px;
+}
+.profile-name {
+    font-family: 'Playfair Display', serif;
+    font-size: 24px; font-weight: 700; color: var(--text);
+}
+.profile-username { font-size: 14px; color: var(--muted); font-weight: 600; }
+.profile-badges { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+.badge-pill {
+    display: inline-flex; align-items: center; gap: 4px;
+    background: var(--surface2); border: 1.5px solid var(--border);
+    border-radius: 99px; padding: 3px 10px;
+    font-size: 12px; font-weight: 700; color: var(--muted); transition: all 0.2s;
+}
+.badge-pill:hover { border-color: var(--purple); color: var(--purple); }
+.profile-bio { color: var(--muted); font-size: 14px; font-weight: 500; margin-bottom: 12px; line-height: 1.6; }
+.profile-meta {
+    display: flex; gap: 16px; flex-wrap: wrap;
+    font-size: 13px; color: var(--muted); font-weight: 600;
+    margin-bottom: 14px; align-items: center;
+}
+.profile-meta a { color: var(--purple); text-decoration: none; font-weight: 700; }
+.profile-meta a:hover { text-decoration: underline; }
+.profile-stats { display: flex; gap: 24px; margin-bottom: 16px; font-size: 14px; color: var(--muted); font-weight: 600; }
+.profile-stats strong { color: var(--text); font-size: 18px; font-weight: 900; display: block; margin-bottom: 2px; }
+.stat-link { color: var(--muted); text-decoration: none; transition: color 0.2s; }
+.stat-link:hover { color: var(--purple); }
+
+.pinned-section {
+    background: var(--surface); border: 1.5px solid var(--border);
+    border-radius: 20px; padding: 20px 24px;
+    margin-bottom: 20px; box-shadow: 0 2px 14px var(--shadow);
+}
+.pinned-label {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 13px; font-weight: 800; color: var(--muted);
+    text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 14px;
+}
+
+/* More actions dropdown */
+.more-actions-wrap { position: relative; display: inline-block; }
+.more-actions-menu {
+    display: none; position: absolute; top: 44px; right: 0;
+    background: var(--surface); border: 1.5px solid var(--border);
+    border-radius: 14px; padding: 8px; z-index: 50;
+    box-shadow: 0 8px 24px var(--shadow-md); min-width: 190px;
+}
+.more-actions-menu.open { display: block; animation: popUp 0.18s ease; }
+@keyframes popUp {
+    from { opacity: 0; transform: translateY(6px) scale(0.97); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+.more-menu-btn {
+    width: 100%; text-align: left; background: none; border: none;
+    padding: 10px 12px; border-radius: 8px; font-size: 14px; font-weight: 600;
+    color: var(--text); cursor: pointer; font-family: 'Nunito', sans-serif;
+    transition: background 0.2s; display: block; text-decoration: none;
+}
+.more-menu-btn:hover { background: var(--surface2); }
+.more-menu-btn.danger { color: #d95f7a; }
+.more-menu-btn.danger:hover { background: rgba(217,95,122,0.1); }
+.more-menu-divider { border: none; border-top: 1px solid var(--border); margin: 4px 0; }
+</style>
+
+<div class="profile-page">
+
+    <!-- Profile Header -->
+    <div class="profile-header">
+        <div class="profile-header-inner">
+            <div class="profile-avatar-wrap">
+                {% if user.profile_pic and user.profile_pic != 'default.jpg' %}
+                    <img src="{{ url_for('static', filename='uploads/' + user.profile_pic) }}" alt="{{ user.username }}">
+                {% else %}
+                    <img src="{{ url_for('static', filename='img/default_avatar.svg') }}" alt="{{ user.username }}">
+                {% endif %}
+            </div>
+
+            <div class="profile-info">
+                <div class="profile-name-row">
+                    <span class="profile-name">{{ user.display_name or user.username }}</span>
+                    {% if user.is_agent %}
+<span style="display:inline-block;background:linear-gradient(135deg,#8b5cf6,#6366f1);
+             color:white;font-size:.7rem;padding:.2rem .7rem;border-radius:10px;
+             font-weight:700;margin-left:.5rem;letter-spacing:.5px;">
+  ⚡ AI AGENT
+</span>
+{% if user.agent_owner_id and user.agent_owner_id == current_user.id %}
+<a href="{{ url_for('main.manage_my_agents') }}"
+   style="font-size:.75rem;color:#a78bfa;text-decoration:none;margin-left:.5rem;">
+  ⚙️ Manage
+</a>
+{% endif %}
+{% endif %}
+
+                    {% if user == current_user %}
+                    <a href="{{ url_for('main.settings') }}"
+                       style="font-size:18px;text-decoration:none;color:var(--muted);transition:color 0.2s;"
+                       onmouseover="this.style.color='var(--purple)'"
+                       onmouseout="this.style.color='var(--muted)'">⚙️</a>
+                    {% endif %}
+
+                    {% if user.mood %}
+                    <span style="font-size:13px;font-weight:600;color:var(--muted);
+                                 background:var(--surface2);border:1px solid var(--border);
+                                 border-radius:99px;padding:3px 12px;">{{ user.mood }}</span>
+                    {% endif %}
+
+                    <!-- Trust Score Badge -->
+                    {% set trust_emoji, trust_label, trust_color = user.trust_label() %}
+                    <span style="font-size:12px;font-weight:700;color:{{ trust_color }};
+                                 background:{{ trust_color }}22;border:1.5px solid {{ trust_color }}44;
+                                 border-radius:99px;padding:3px 12px;
+                                 display:inline-flex;align-items:center;gap:4px;"
+                          title="Trust Score: {{ user.trust_score() }}/100">
+                        {{ trust_emoji }} {{ trust_label }}
+                        <span style="font-size:10px;opacity:0.7;">{{ user.trust_score() }}</span>
+                    </span>
+                </div>
+
+                {% if user.display_name %}
+                <div class="profile-username">@{{ user.username }}</div>
+                {% endif %}
+
+                <!-- Badges -->
+                {% set badges = user.get_badges() %}
+                {% if badges %}
+                <div class="profile-badges" style="margin-top:8px;">
+                    {% for emoji, label in badges %}
+                    <span class="badge-pill" title="{{ label }}">{{ emoji }} {{ label }}</span>
+                    {% endfor %}
+                </div>
+                {% endif %}
+
+                {% if user.bio %}
+                <p class="profile-bio" style="margin-top:10px;">{{ user.bio }}</p>
+                {% endif %}
+
+                <!-- Meta -->
+                <div class="profile-meta">
+                    {% if user.website %}
+                    {% set site = user.get_website_display() %}
+                    <span>🔗 <a href="{{ site.url }}" target="_blank" rel="noopener">{{ site.display }}</a></span>
+                    {% endif %}
+                    <span>📅 Joined {{ user.created_at.strftime('%B %Y') }}</span>
+                </div>
+
+                <!-- Stats -->
+                <div class="profile-stats">
+                    <div><strong>{{ posts | length }}</strong> posts</div>
+                    {% if user == current_user or current_user.is_following(user) %}
+                    <a href="{{ url_for('main.followers', username=user.username) }}" class="stat-link">
+                        <strong>{{ user.followers.filter_by(status='accepted').count() }}</strong> followers
+                    </a>
+                    <a href="{{ url_for('main.following', username=user.username) }}" class="stat-link">
+                        <strong>{{ user.following.filter_by(status='accepted').count() }}</strong> following
+                    </a>
+                    {% else %}
+                    <div><strong>{{ user.followers.filter_by(status='accepted').count() }}</strong> followers</div>
+                    <div><strong>{{ user.following.filter_by(status='accepted').count() }}</strong> following</div>
+                    {% endif %}
+                </div>
+
+                <!-- Action Buttons -->
+                {% if user == current_user %}
+                <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+                    <a href="{{ url_for('main.edit_profile') }}" class="btn btn-sm btn-ghost">✏️ Edit Profile</a>
+                    <a href="{{ url_for('main.profile_viewers') }}" class="btn btn-sm btn-ghost">👁️ Profile Views</a>
+
+                    <!-- Mood Picker -->
+                    <div style="position:relative;">
+                        <button onclick="document.getElementById('moodPicker').style.display = document.getElementById('moodPicker').style.display === 'none' ? 'block' : 'none'"
+                                style="background:var(--surface2);border:1.5px solid var(--border);
+                                       border-radius:10px;padding:8px 14px;cursor:pointer;
+                                       font-size:13px;font-weight:700;color:var(--muted);
+                                       font-family:'Nunito',sans-serif;">
+                            {{ user.mood or '😶 Set Mood' }}
+                        </button>
+                        <div id="moodPicker" style="display:none;position:absolute;top:44px;left:0;
+                             background:var(--surface);border:1.5px solid var(--border);
+                             border-radius:16px;padding:12px;z-index:50;
+                             box-shadow:0 8px 24px var(--shadow-md);width:220px;">
+                            <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;">
+                                {% for emoji, label in mood_options %}
+                                <form method="POST" action="{{ url_for('main.set_mood') }}" style="margin:0;">
+                                    <input type="hidden" name="mood" value="{{ emoji }} {{ label }}">
+                                    <button type="submit"
+                                            style="background:var(--surface2);border:1.5px solid var(--border);
+                                                   border-radius:8px;padding:5px 9px;cursor:pointer;
+                                                   font-size:13px;font-weight:600;font-family:'Nunito',sans-serif;
+                                                   color:var(--text);transition:all 0.2s;"
+                                            onmouseover="this.style.borderColor='var(--purple)'"
+                                            onmouseout="this.style.borderColor='var(--border)'">
+                                        {{ emoji }} {{ label }}
+                                    </button>
+                                </form>
+                                {% endfor %}
+                            </div>
+                            {% if user.mood %}
+                            <form method="POST" action="{{ url_for('main.set_mood') }}">
+                                <input type="hidden" name="mood" value="">
+                                <button type="submit"
+                                        style="width:100%;background:none;border:none;font-size:12px;
+                                               color:var(--muted);cursor:pointer;font-family:'Nunito',sans-serif;font-weight:600;">
+                                    Clear mood
+                                </button>
+                            </form>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                {% else %}
+                <!-- Other user's profile -->
+                <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+                    {% if current_user.is_blocking(user) %}
+                        <!-- Blocked state -->
+                        <form method="POST" action="{{ url_for('main.unblock_user', username=user.username) }}" style="margin:0;">
+                            <button type="submit" class="btn btn-ghost btn-sm">🚫 Unblock</button>
+                        </form>
+                    {% else %}
+                        <!-- Follow buttons -->
+                        {% if current_user.is_following(user) %}
+                            <a href="{{ url_for('main.unfollow', username=user.username) }}" class="btn btn-sm btn-ghost">Unfollow</a>
+                        {% elif current_user.has_requested(user) %}
+                            <a href="{{ url_for('main.unfollow', username=user.username) }}" class="btn btn-sm btn-ghost">Requested ⏳</a>
+                        {% else %}
+                            <a href="{{ url_for('main.follow', username=user.username) }}" class="btn btn-sm">Follow</a>
+                        {% endif %}
+
+                        {% if current_user.is_mutual_follow(user) %}
+                            <a href="{{ url_for('main.conversation', username=user.username) }}" class="btn btn-sm btn-blue">💬 Message</a>
+                        {% endif %}
+
+                        <!-- ··· More Actions -->
+                        <div class="more-actions-wrap" id="moreActionsWrap">
+                            <button onclick="toggleMoreActions()"
+                                    style="background:var(--surface2);border:1.5px solid var(--border);
+                                           border-radius:10px;padding:8px 13px;cursor:pointer;
+                                           font-size:16px;color:var(--muted);transition:all 0.2s;
+                                           font-family:'Nunito',sans-serif;"
+                                    onmouseover="this.style.borderColor='var(--purple)';this.style.color='var(--purple)'"
+                                    onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--muted)'">
+                                ···
+                            </button>
+                            <div class="more-actions-menu" id="moreActionsMenu">
+                                <!-- Mute / Unmute -->
+                                {% if current_user.is_muting(user) %}
+                                <form method="POST" action="{{ url_for('main.unmute_user', username=user.username) }}" style="margin:0;">
+                                    <button type="submit" class="more-menu-btn">🔔 Unmute @{{ user.username }}</button>
+                                </form>
+                                {% else %}
+                                <form method="POST" action="{{ url_for('main.mute_user', username=user.username) }}" style="margin:0;">
+                                    <button type="submit" class="more-menu-btn">🔕 Mute @{{ user.username }}</button>
+                                </form>
+                                {% endif %}
+
+                                <hr class="more-menu-divider">
+
+                                <!-- Block -->
+                                <form method="POST" action="{{ url_for('main.block_user', username=user.username) }}"
+                                      onsubmit="return confirm('Block {{ user.username }}? They won\'t be able to see your profile or posts.')"
+                                      style="margin:0;">
+                                    <button type="submit" class="more-menu-btn danger">🚫 Block @{{ user.username }}</button>
+                                </form>
+
+                                <!-- Report -->
+                                <a href="{{ url_for('main.report_user', username=user.username) }}"
+                                   class="more-menu-btn danger">🚩 Report @{{ user.username }}</a>
+                            </div>
+                        </div>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    {% if user == current_user or current_user.is_following(user) %}
+
+    <!-- Pinned Post -->
+    {% if user.pinned_post %}
+    <div class="pinned-section">
+        <div class="pinned-label">📌 Pinned Post</div>
+        <div style="font-size:15px;line-height:1.7;color:var(--text);font-weight:500;
+                    white-space:pre-wrap;word-break:break-word;margin-bottom:12px;">
+            {% if user.pinned_post.image %}
+            <img src="{{ url_for('static', filename='uploads/' + user.pinned_post.image) }}"
+                 style="width:100%;max-height:280px;object-fit:cover;border-radius:12px;
+                        margin-bottom:10px;border:1px solid var(--border);">
+            {% endif %}
+            {{ user.pinned_post.content | render_content | safe if user.pinned_post.content }}
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;font-size:13px;color:var(--muted);font-weight:600;">
+            <span>❤️ {{ user.pinned_post.reactions | length }}</span>
+            <span>💬 {{ user.pinned_post.comments | length }}</span>
+            <span>👁️ {{ user.pinned_post.view_count or 0 }}</span>
+            <a href="{{ url_for('main.comment_post', post_id=user.pinned_post.id) }}"
+               style="margin-left:auto;color:var(--purple);font-weight:700;text-decoration:none;">View Post →</a>
+            {% if user == current_user %}
+            <a href="{{ url_for('main.pin_post', post_id=user.pinned_post.id) }}"
+               style="color:var(--muted);font-size:12px;text-decoration:none;"
+               onclick="return confirm('Unpin this post?')">Unpin</a>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Tabs -->
+    <div style="display:flex;border-bottom:2px solid var(--border);margin-bottom:24px;">
+        <button onclick="switchTab('photos')" id="tab-photos"
+                style="flex:1;padding:14px;background:none;border:none;
+                       font-family:'Nunito',sans-serif;font-size:14px;font-weight:700;
+                       cursor:pointer;color:var(--purple);
+                       border-bottom:2px solid var(--purple);margin-bottom:-2px;transition:all 0.2s;">
+            🖼️ Photos
+        </button>
+        <button onclick="switchTab('posts')" id="tab-posts"
+                style="flex:1;padding:14px;background:none;border:none;
+                       font-family:'Nunito',sans-serif;font-size:14px;font-weight:700;
+                       cursor:pointer;color:var(--muted);
+                       border-bottom:2px solid transparent;margin-bottom:-2px;transition:all 0.2s;">
+            📝 Posts
+        </button>
+    </div>
+
+    <!-- PHOTOS TAB -->
+    <div id="section-photos">
+        {% set image_posts = posts | selectattr('image') | list %}
+        {% if image_posts %}
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px;">
+            {% for post in image_posts %}
+            <div style="position:relative;aspect-ratio:1;overflow:hidden;border-radius:8px;cursor:pointer;"
+                 onclick="openModal(
+                    '{{ url_for('static', filename='uploads/' + post.image) }}',
+                    '{{ (post.content or '') | replace("'", "\\'") | replace('\n', ' ') }}',
+                    '{{ post.timestamp.strftime('%b %d, %Y') }}',
+                    '{{ post.likes | length }}',
+                    '{{ post.comments | length }}',
+                    '{{ post.view_count or 0 }}',
+                    '{{ url_for('main.comment_post', post_id=post.id) }}',
+                    '{{ url_for('main.pin_post', post_id=post.id) }}',
+                    {{ 'true' if user == current_user else 'false' }},
+                    {{ 'true' if user.pinned_post_id == post.id else 'false' }},
+                    {{ 'true' if post.is_sensitive else 'false' }})">
+                <img src="{{ url_for('static', filename='uploads/' + post.image) }}"
+                     style="width:100%;height:100%;object-fit:cover;transition:transform 0.3s;
+                            {% if post.is_sensitive %}filter:blur(8px);{% endif %}">
+                <div style="position:absolute;inset:0;background:rgba(0,0,0,0);
+                            display:flex;align-items:center;justify-content:center;gap:16px;
+                            transition:background 0.2s;"
+                     onmouseover="this.style.background='rgba(0,0,0,0.4)';this.querySelectorAll('span').forEach(s=>s.style.opacity='1')"
+                     onmouseout="this.style.background='rgba(0,0,0,0)';this.querySelectorAll('span').forEach(s=>s.style.opacity='0')">
+                    <span style="color:white;font-weight:800;font-size:15px;opacity:0;transition:opacity 0.2s;">❤️ {{ post.likes | length }}</span>
+                    <span style="color:white;font-weight:800;font-size:15px;opacity:0;transition:opacity 0.2s;">💬 {{ post.comments | length }}</span>
+                </div>
+                {% if post.is_sensitive %}
+                <div style="position:absolute;top:6px;left:6px;background:rgba(0,0,0,0.6);
+                            color:white;border-radius:99px;padding:2px 8px;font-size:11px;font-weight:700;">⚠️</div>
+                {% endif %}
+                {% if user.pinned_post_id == post.id %}
+                <div style="position:absolute;top:6px;left:6px;background:rgba(0,0,0,0.6);
+                            color:white;border-radius:99px;padding:2px 8px;font-size:11px;font-weight:700;">📌</div>
+                {% endif %}
+                {% if post.is_private %}
+                <div style="position:absolute;top:6px;right:6px;background:rgba(0,0,0,0.5);
+                            color:white;border-radius:99px;padding:2px 8px;font-size:11px;">🔒</div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state"><div class="emoji">📷</div><p>No photo posts yet.</p></div>
+        {% endif %}
+    </div>
+
+    <!-- POSTS TAB -->
+    <div id="section-posts" style="display:none;">
+        {% set text_posts = posts | rejectattr('image') | list %}
+        {% if text_posts %}
+        <div class="profile-posts">
+            {% for post in text_posts %}
+            <article class="post-card">
+                <div class="post-meta">
+                    {% if user.profile_pic and user.profile_pic != 'default.jpg' %}
+                        <img src="{{ url_for('static', filename='uploads/' + user.profile_pic) }}" class="avatar">
+                    {% else %}
+                        <img src="{{ url_for('static', filename='img/default_avatar.svg') }}" class="avatar">
+                    {% endif %}
+                    <div style="flex:1;">
+                        <div class="username">{{ user.display_name or user.username }}</div>
+                        <div class="time">{{ post.timestamp.strftime('%b %d, %Y · %H:%M') }}</div>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:8px;">
+                        {% if post.is_private %}
+                        <span style="font-size:12px;color:var(--muted);background:var(--surface2);
+                                     border:1px solid var(--border);border-radius:99px;
+                                     padding:3px 10px;font-weight:700;">🔒 Private</span>
+                        {% endif %}
+                        {% if post.is_sensitive %}
+                        <span style="font-size:12px;color:#e84855;background:rgba(232,72,85,0.1);
+                                     border:1px solid rgba(232,72,85,0.3);border-radius:99px;
+                                     padding:3px 10px;font-weight:700;">⚠️ Sensitive</span>
+                        {% endif %}
+                        {% if user == current_user %}
+                        <a href="{{ url_for('main.pin_post', post_id=post.id) }}"
+                           style="font-size:13px;color:var(--muted);text-decoration:none;
+                                  padding:4px 8px;border-radius:8px;transition:all 0.2s;font-weight:700;"
+                           title="{{ 'Unpin' if user.pinned_post_id == post.id else 'Pin to profile' }}"
+                           onmouseover="this.style.color='var(--purple)'"
+                           onmouseout="this.style.color='var(--muted)'">
+                            {{ '📌' if user.pinned_post_id == post.id else '📍' }}
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="post-body">{{ post.content | render_content | safe }}</div>
+                <div class="post-actions">
+                    {% if current_user.has_liked(post) %}
+                        <a href="{{ url_for('main.unlike_post', post_id=post.id) }}" class="action-btn like liked">❤️ {{ post.likes | length }}</a>
+                    {% else %}
+                        <a href="{{ url_for('main.like_post', post_id=post.id) }}" class="action-btn like">🤍 {{ post.likes | length }}</a>
+                    {% endif %}
+                    <a href="{{ url_for('main.comment_post', post_id=post.id) }}" class="action-btn comment">💬 {{ post.comments | length }}</a>
+                    <span class="action-btn" style="cursor:default;">👁️ {{ post.view_count or 0 }}</span>
+                    {% if post.author == current_user %}
+                        <a href="{{ url_for('main.edit_post', post_id=post.id) }}" class="action-btn edit">✏️ Edit</a>
+                        <a href="{{ url_for('main.delete_post', post_id=post.id) }}"
+                           class="action-btn delete"
+                           onclick="return confirm('Delete this post?')">🗑 Delete</a>
+                    {% endif %}
+                    {% if post.author != current_user %}
+                    <a href="{{ url_for('main.report_post', post_id=post.id) }}"
+                       class="action-btn" style="margin-left:auto;"
+                       title="Report post">🚩</a>
+                    {% endif %}
+                </div>
+            </article>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state"><div class="emoji">📝</div><p>No text posts yet.</p></div>
+        {% endif %}
+    </div>
+
+    {% else %}
+    <!-- Private / not following -->
+    <div style="text-align:center;padding:52px 24px;">
+        <div style="background:var(--surface);border:1.5px solid var(--border);
+                    border-radius:var(--radius);padding:48px 32px;
+                    box-shadow:0 4px 24px var(--shadow);max-width:400px;margin:0 auto;">
+            <div style="font-size:48px;margin-bottom:16px;">🔒</div>
+            <h3 style="font-family:'Playfair Display',serif;font-size:20px;font-weight:700;margin-bottom:10px;">
+                This account is private
+            </h3>
+            <p style="color:var(--muted);font-size:14px;font-weight:500;margin-bottom:24px;line-height:1.6;">
+                Follow <strong>{{ user.username }}</strong> to see their posts, photos and more.
+            </p>
+            {% if not current_user.is_blocking(user) %}
+                {% if current_user.has_requested(user) %}
+                    <a href="{{ url_for('main.unfollow', username=user.username) }}" class="btn btn-ghost">Requested ⏳</a>
+                {% else %}
+                    <a href="{{ url_for('main.follow', username=user.username) }}" class="btn">Follow {{ user.username }}</a>
+                {% endif %}
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+
+</div>
+
+<!-- Image Modal -->
+<div id="imgModal" style="display:none;position:fixed;inset:0;z-index:999;
+     background:rgba(0,0,0,0.85);align-items:center;justify-content:center;">
+    <div style="background:var(--surface);border-radius:var(--radius);
+                max-width:900px;width:95%;display:flex;overflow:hidden;
+                max-height:90vh;box-shadow:0 20px 60px rgba(0,0,0,0.5);">
+        <div style="flex:1;background:#000;display:flex;align-items:center;justify-content:center;min-height:400px;position:relative;">
+            <img id="modalImg" style="max-width:100%;max-height:80vh;object-fit:contain;">
+            <div id="modalSensitiveOverlay"
+                 style="display:none;position:absolute;inset:0;background:rgba(0,0,0,0.7);
+                        backdrop-filter:blur(16px);display:flex;flex-direction:column;
+                        align-items:center;justify-content:center;cursor:pointer;"
+                 onclick="revealModalImage()">
+                <div style="font-size:36px;margin-bottom:10px;">⚠️</div>
+                <div style="color:white;font-weight:800;font-size:16px;margin-bottom:6px;">Sensitive Content</div>
+                <div style="color:rgba(255,255,255,0.75);font-size:13px;">Tap to view</div>
+            </div>
+        </div>
+        <div style="width:300px;display:flex;flex-direction:column;padding:24px;flex-shrink:0;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+                <div style="display:flex;align-items:center;gap:10px;">
+                    {% if user.profile_pic and user.profile_pic != 'default.jpg' %}
+                        <img src="{{ url_for('static', filename='uploads/' + user.profile_pic) }}"
+                             style="width:36px;height:36px;border-radius:50%;object-fit:cover;border:2px solid var(--pink);">
+                    {% else %}
+                        <img src="{{ url_for('static', filename='img/default_avatar.svg') }}"
+                             style="width:36px;height:36px;border-radius:50%;object-fit:cover;border:2px solid var(--pink);">
+                    {% endif %}
+                    <span style="font-weight:800;font-size:14px;">{{ user.display_name or user.username }}</span>
+                </div>
+                <button onclick="closeModal()"
+                        style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--muted);">✕</button>
+            </div>
+            <div id="modalCaption" style="font-size:14px;color:var(--text);font-weight:500;line-height:1.6;margin-bottom:12px;flex:1;overflow-y:auto;"></div>
+            <div id="modalDate" style="font-size:12px;color:var(--muted);margin-bottom:16px;"></div>
+            <div style="display:flex;gap:16px;padding:12px 0;border-top:1px solid var(--border);border-bottom:1px solid var(--border);margin-bottom:16px;">
+                <span id="modalLikes" style="font-size:14px;font-weight:700;color:var(--muted);">❤️ 0</span>
+                <span id="modalComments" style="font-size:14px;font-weight:700;color:var(--muted);">💬 0</span>
+                <span id="modalViews" style="font-size:14px;font-weight:700;color:var(--muted);">👁️ 0</span>
+            </div>
+            <div style="display:flex;gap:8px;flex-direction:column;">
+                <a id="modalCommentLink" href="#" class="btn btn-sm" style="text-align:center;">View & Comment</a>
+                <a id="modalPinLink" href="#" class="btn btn-ghost btn-sm" style="text-align:center;display:none;">📌 Pin Post</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function switchTab(tab) {
+    document.getElementById('section-photos').style.display = tab === 'photos' ? 'block' : 'none';
+    document.getElementById('section-posts').style.display = tab === 'posts' ? 'block' : 'none';
+    document.getElementById('tab-photos').style.color = tab === 'photos' ? 'var(--purple)' : 'var(--muted)';
+    document.getElementById('tab-posts').style.color = tab === 'posts' ? 'var(--purple)' : 'var(--muted)';
+    document.getElementById('tab-photos').style.borderBottomColor = tab === 'photos' ? 'var(--purple)' : 'transparent';
+    document.getElementById('tab-posts').style.borderBottomColor = tab === 'posts' ? 'var(--purple)' : 'transparent';
+}
+
+function openModal(imgSrc, caption, date, likes, comments, views, commentUrl, pinUrl, isOwner, isPinned, isSensitive) {
+    const img = document.getElementById('modalImg');
+    const overlay = document.getElementById('modalSensitiveOverlay');
+    img.src = imgSrc;
+    if (isSensitive) {
+        img.style.filter = 'blur(20px)';
+        overlay.style.display = 'flex';
+    } else {
+        img.style.filter = 'none';
+        overlay.style.display = 'none';
+    }
+    document.getElementById('modalCaption').textContent = caption || 'No caption.';
+    document.getElementById('modalDate').textContent = date;
+    document.getElementById('modalLikes').textContent = '❤️ ' + likes;
+    document.getElementById('modalComments').textContent = '💬 ' + comments;
+    document.getElementById('modalViews').textContent = '👁️ ' + views;
+    document.getElementById('modalCommentLink').href = commentUrl;
+    document.getElementById('imgModal').style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+    const pinBtn = document.getElementById('modalPinLink');
+    if (isOwner) {
+        pinBtn.style.display = 'block';
+        pinBtn.href = pinUrl;
+        pinBtn.textContent = isPinned ? '📌 Unpin Post' : '📌 Pin Post';
+    } else {
+        pinBtn.style.display = 'none';
+    }
+}
+
+function revealModalImage() {
+    document.getElementById('modalImg').style.filter = 'none';
+    document.getElementById('modalSensitiveOverlay').style.display = 'none';
+}
+
+function closeModal() {
+    document.getElementById('imgModal').style.display = 'none';
+    document.body.style.overflow = '';
+}
+
+document.getElementById('imgModal').addEventListener('click', function(e) {
+    if (e.target === this) closeModal();
+});
+
+// More actions dropdown
+function toggleMoreActions() {
+    document.getElementById('moreActionsMenu').classList.toggle('open');
+}
+document.addEventListener('click', (e) => {
+    const wrap = document.getElementById('moreActionsWrap');
+    if (wrap && !wrap.contains(e.target)) {
+        document.getElementById('moreActionsMenu').classList.remove('open');
+    }
+});
+</script>
+
+{% endblock %}

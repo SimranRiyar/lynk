@@ -1,0 +1,1077 @@
+{% extends "base.html" %} {% block content %}
+<style>
+  /* ── RESET PAGE WRAP FOR FULL SCREEN ── */
+  .page-wrap {
+    padding: 0 !important;
+    max-width: 100% !important;
+  }
+
+  /* Hide the mobile bottom nav on messages page so it doesn't overlap the input */
+  .mobile-bottom-nav {
+    display: none !important;
+  }
+
+  /* ── MAIN CONTAINER ── */
+  .wa-wrap {
+    display: flex;
+    height: calc(100vh - var(--nav-h));
+    background: var(--bg);
+    overflow: hidden;
+  }
+
+  /* ══════════════════════════════════════
+   LEFT PANEL — CHAT LIST
+══════════════════════════════════════ */
+  .wa-left {
+    width: 340px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    background: var(--surface);
+    border-right: 1.5px solid var(--border);
+    overflow: hidden;
+  }
+
+  .wa-left-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+    background: var(--surface);
+  }
+  .wa-left-header h2 {
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: var(--text);
+  }
+  .wa-left-header-actions {
+    display: flex;
+    gap: 8px;
+  }
+  .wa-icon-btn {
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    background: var(--surface2);
+    border: 1.5px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
+    cursor: pointer;
+    text-decoration: none;
+    color: var(--muted);
+    transition: all 0.2s;
+  }
+  .wa-icon-btn:hover {
+    background: var(--purple-soft);
+    border-color: var(--purple);
+    color: var(--purple);
+  }
+
+  /* Search */
+  .wa-search {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .wa-search input {
+    width: 100%;
+    background: var(--surface2);
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    padding: 8px 14px;
+    font-size: 13px;
+    color: var(--text);
+    font-family: "Nunito", sans-serif;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .wa-search input:focus { border-color: var(--purple); }
+
+  /* Chat list */
+  .wa-chat-list { flex: 1; overflow-y: auto; }
+  .wa-chat-list::-webkit-scrollbar { width: 3px; }
+  .wa-chat-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
+
+  .wa-chat-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    cursor: pointer;
+    text-decoration: none;
+    transition: background 0.15s;
+    border-bottom: 1px solid var(--border);
+    position: relative;
+  }
+  .wa-chat-item:hover { background: var(--surface2); }
+  .wa-chat-item.active {
+    background: var(--purple-soft);
+    border-right: 3px solid var(--purple);
+  }
+
+  .wa-chat-avatar {
+    width: 46px; height: 46px;
+    border-radius: 50%; object-fit: cover;
+    flex-shrink: 0; border: 2px solid var(--border);
+  }
+  .wa-chat-avatar-placeholder {
+    width: 46px; height: 46px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--purple), var(--pink));
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.1rem; font-weight: 800; color: white; flex-shrink: 0;
+  }
+  .wa-chat-info { flex: 1; min-width: 0; }
+  .wa-chat-name {
+    font-size: 0.88rem; font-weight: 700; color: var(--text);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 2px;
+  }
+  .wa-chat-preview {
+    font-size: 0.75rem; color: var(--muted);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .wa-chat-meta {
+    display: flex; flex-direction: column;
+    align-items: flex-end; gap: 4px; flex-shrink: 0;
+  }
+  .wa-chat-time { font-size: 0.68rem; color: var(--muted); font-weight: 600; }
+  .wa-unread-badge {
+    background: var(--purple); color: white;
+    font-size: 0.65rem; font-weight: 800;
+    width: 18px; height: 18px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .wa-empty-left {
+    flex: 1; display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 8px; color: var(--muted); padding: 2rem;
+    text-align: center; font-size: 0.85rem;
+  }
+
+  /* ══════════════════════════════════════
+   RIGHT PANEL
+══════════════════════════════════════ */
+  .wa-right {
+    flex: 1; display: flex; flex-direction: column;
+    overflow: hidden; background: var(--bg);
+  }
+
+  .wa-no-chat {
+    flex: 1; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 12px; color: var(--muted);
+  }
+  .wa-no-chat .icon { font-size: 4rem; opacity: 0.4; }
+  .wa-no-chat h3   { font-size: 1.1rem; font-weight: 700; opacity: 0.6; }
+  .wa-no-chat p    { font-size: 0.85rem; opacity: 0.4; }
+
+  /* Chat header */
+  .wa-chat-header {
+    padding: 12px 20px; background: var(--surface);
+    border-bottom: 1.5px solid var(--border);
+    display: flex; align-items: center; gap: 12px; flex-shrink: 0;
+  }
+  .wa-chat-header-avatar {
+    width: 40px; height: 40px; border-radius: 50%;
+    object-fit: cover; flex-shrink: 0; border: 2px solid var(--pink);
+  }
+  .wa-chat-header-info { flex: 1; min-width: 0; }
+  .wa-chat-header-name { font-size: 0.95rem; font-weight: 800; color: var(--text); }
+  .wa-chat-header-status { font-size: 0.75rem; color: var(--muted); font-weight: 500; }
+  .wa-chat-header-status.typing { color: var(--purple); font-weight: 700; }
+  .wa-back-btn {
+    display: none; width: 34px; height: 34px;
+    border-radius: 10px; background: var(--surface2);
+    border: 1.5px solid var(--border); align-items: center; justify-content: center;
+    font-size: 16px; cursor: pointer; text-decoration: none;
+    color: var(--muted); transition: all 0.2s; flex-shrink: 0;
+  }
+  .wa-back-btn:hover { color: var(--purple); }
+
+  /* ── MESSAGES AREA ──
+     Key fix: align-items:flex-start so every child (bubble-row)
+     anchors to the LEFT by default. "mine" rows override with align-self:flex-end.
+  ── */
+  .wa-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    scroll-behavior: smooth;
+    align-items: flex-start; /* ← CRITICAL: anchor children left */
+  }
+  .wa-messages::-webkit-scrollbar { width: 4px; }
+  .wa-messages::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
+
+  /* Date divider — needs full width so override align-self */
+  .wa-date-divider {
+    display: flex; align-items: center; gap: 10px;
+    margin: 10px 0;
+    width: 100%;
+    align-self: stretch;
+  }
+  .wa-date-divider::before,
+  .wa-date-divider::after { content: ""; flex: 1; height: 1px; background: var(--border); }
+  .wa-date-divider span {
+    font-size: 11px; font-weight: 700; color: var(--muted);
+    background: var(--bg); padding: 2px 10px; border-radius: 99px; white-space: nowrap;
+  }
+
+  /* ── BUBBLE ROWS ── */
+  .wa-bubble-row {
+    display: flex;
+    align-items: flex-end;
+    gap: 6px;
+    max-width: 75%;
+    width: fit-content;
+    margin-bottom: 2px;
+    align-self: flex-start; /* theirs = LEFT */
+  }
+  .wa-bubble-row.mine {
+    flex-direction: row-reverse;
+    align-self: flex-end;   /* mine = RIGHT */
+  }
+
+  /* Small avatar beside bubble */
+  .wa-avatar-sm {
+    width: 26px; height: 26px;
+    border-radius: 50%;
+    object-fit: cover;
+    flex-shrink: 0;
+    align-self: flex-end;
+    border: 1.5px solid var(--border);
+    /* for div fallback */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.68rem;
+    font-weight: 800;
+    color: white;
+    background: linear-gradient(135deg, var(--purple), var(--pink));
+  }
+
+  .wa-bubble-wrap {
+    display: flex; flex-direction: column;
+    gap: 1px; min-width: 0; max-width: 100%;
+  }
+
+  /* Text bubble */
+  .wa-bubble {
+    padding: 8px 13px; border-radius: 16px;
+    font-size: 14px; font-weight: 500; line-height: 1.5;
+    word-break: break-word; max-width: 100%;
+  }
+  .wa-bubble.theirs {
+    background: var(--surface); color: var(--text);
+    border: 1.5px solid var(--border); border-bottom-left-radius: 4px;
+    box-shadow: 0 1px 3px var(--shadow);
+  }
+  .wa-bubble.mine {
+    background: linear-gradient(135deg, var(--purple), var(--pink));
+    color: white; border-bottom-right-radius: 4px;
+    box-shadow: 0 2px 8px rgba(155,111,212,0.3);
+  }
+
+  /* Image bubble */
+  .wa-img-bubble {
+    border-radius: 16px; overflow: hidden; max-width: 220px;
+    cursor: pointer; border: 1.5px solid var(--border); box-shadow: 0 1px 3px var(--shadow);
+  }
+  .wa-img-bubble.mine { border-color: rgba(255,255,255,0.2); }
+  .wa-img-bubble img {
+    width: 100%; max-height: 200px; object-fit: cover;
+    display: block; transition: opacity 0.2s;
+  }
+  .wa-img-bubble img:hover { opacity: 0.9; }
+
+  /* Audio bubble */
+  .wa-audio-bubble {
+    padding: 10px 14px; border-radius: 16px;
+    display: flex; align-items: center; gap: 10px;
+    min-width: 180px; max-width: 260px;
+  }
+  .wa-audio-bubble.theirs {
+    background: var(--surface); border: 1.5px solid var(--border);
+    border-bottom-left-radius: 4px;
+  }
+  .wa-audio-bubble.mine {
+    background: linear-gradient(135deg, var(--purple), var(--pink));
+    border-bottom-right-radius: 4px;
+  }
+  .wa-audio-play {
+    width: 34px; height: 34px; border-radius: 50%;
+    background: rgba(255,255,255,0.2); border: none;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; flex-shrink: 0; font-size: 14px; color: white; transition: all 0.2s;
+  }
+  .wa-audio-bubble.theirs .wa-audio-play { background: var(--purple-soft); color: var(--purple); }
+  .wa-audio-play:hover { transform: scale(1.1); }
+  .wa-audio-waveform {
+    flex: 1; height: 28px; display: flex; align-items: center; gap: 2px;
+  }
+  .wa-audio-waveform span {
+    display: block; width: 3px; border-radius: 2px;
+    background: rgba(255,255,255,0.5);
+    animation: waveAnim 1.2s ease-in-out infinite;
+  }
+  .wa-audio-bubble.theirs .wa-audio-waveform span { background: var(--purple); opacity: 0.4; }
+  .wa-audio-waveform span:nth-child(odd) { animation-delay: 0.2s; }
+  .wa-audio-waveform span:nth-child(3n)  { animation-delay: 0.4s; }
+  @keyframes waveAnim { 0%,100%{height:6px} 50%{height:20px} }
+  .wa-audio-dur { font-size: 0.72rem; opacity: 0.7; color: inherit; white-space: nowrap; }
+
+  /* Shared post card */
+  .wa-post-share { border-radius: 16px; overflow: hidden; width: 230px; max-width: 230px; }
+  .wa-post-share.theirs {
+    background: var(--surface); border: 1.5px solid var(--border); border-bottom-left-radius: 4px;
+  }
+  .wa-post-share.mine {
+    background: linear-gradient(135deg, var(--purple), var(--pink));
+    border-bottom-right-radius: 4px; border: none;
+  }
+  .wa-share-label {
+    padding: .45rem .75rem; font-size: .68rem; font-weight: 700; opacity: .65;
+    border-bottom: 1px solid rgba(255,255,255,.1);
+    display: flex; align-items: center; gap: .3rem;
+  }
+  .wa-post-share.theirs .wa-share-label { border-bottom-color: var(--border); }
+  .wa-share-img { width: 100%; max-height: 130px; object-fit: cover; display: block; }
+  .wa-share-body { padding: .6rem .75rem; }
+  .wa-share-author { display: flex; align-items: center; gap: .35rem; margin-bottom: .3rem; }
+  .wa-share-author img { width: 16px; height: 16px; border-radius: 50%; object-fit: cover; }
+  .wa-share-author span { font-size: .7rem; font-weight: 700; opacity: .8; }
+  .wa-share-text {
+    font-size: .78rem; line-height: 1.4; opacity: .85;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+    overflow: hidden; margin-bottom: .4rem;
+  }
+  .wa-share-link {
+    font-size: .7rem; font-weight: 700; opacity: .6; text-decoration: none; color: inherit;
+    border-top: 1px solid rgba(255,255,255,.15); padding-top: .35rem; display: block;
+  }
+  .wa-post-share.theirs .wa-share-link { border-top-color: var(--border); }
+  .wa-share-link:hover { opacity: 1; }
+
+  /* Bubble meta */
+  .wa-bubble-meta { display: flex; align-items: center; gap: 3px; margin-top: 2px; }
+  .wa-bubble-row.mine .wa-bubble-meta { justify-content: flex-end; }
+  .wa-time { font-size: 10px; color: var(--muted); font-weight: 600; }
+  .wa-tick { font-size: 10px; color: var(--purple); }
+
+  /* Typing indicator */
+  .wa-typing {
+    display: none; align-items: center; gap: 8px;
+    margin-top: 4px; animation: msgIn 0.2s ease;
+    align-self: flex-start; /* stays LEFT */
+  }
+  .wa-typing.show { display: flex; }
+  .wa-typing-bubble {
+    background: var(--surface); border: 1.5px solid var(--border);
+    border-radius: 16px; border-bottom-left-radius: 4px;
+    padding: 10px 14px; display: flex; gap: 4px;
+  }
+  .wa-t-dot {
+    width: 6px; height: 6px; border-radius: 50%; background: var(--muted);
+    animation: tBounce 1.3s infinite ease-in-out;
+  }
+  .wa-t-dot:nth-child(2) { animation-delay: .15s; }
+  .wa-t-dot:nth-child(3) { animation-delay: .3s; }
+  @keyframes tBounce { 0%,60%,100%{transform:translateY(0);opacity:.4} 30%{transform:translateY(-6px);opacity:1} }
+  @keyframes msgIn   { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
+
+  /* Smart reply bar */
+  .wa-smart-bar {
+    background: var(--surface); border-top: 1px solid var(--border);
+    padding: 6px 14px; display: flex; align-items: center;
+    gap: 6px; flex-wrap: wrap; flex-shrink: 0; min-height: 40px;
+  }
+  .wa-smart-btn {
+    background: var(--purple-soft); border: 1.5px solid var(--purple);
+    border-radius: 20px; padding: 4px 12px; font-size: 11px; font-weight: 700;
+    color: var(--purple); cursor: pointer; font-family: inherit; transition: all 0.2s;
+  }
+  .wa-smart-btn:hover    { background: var(--purple); color: white; }
+  .wa-smart-btn:disabled { opacity: .5; cursor: not-allowed; }
+  .wa-smart-chip {
+    background: var(--surface2); border: 1.5px solid var(--border);
+    border-radius: 20px; padding: 4px 10px; font-size: 11px; font-weight: 600;
+    color: var(--text); cursor: pointer; font-family: inherit;
+    transition: all 0.2s; white-space: nowrap;
+  }
+  .wa-smart-chip:hover { background: var(--purple-soft); border-color: var(--purple); color: var(--purple); }
+
+  /* Input area */
+  .wa-input-area {
+    padding: 8px 12px;
+    background: var(--surface);
+    border-top: 1.5px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+  }
+  .wa-input-wrap {
+    flex: 1;
+    background: var(--surface2);
+    border: 1.5px solid var(--border);
+    border-radius: 22px;
+    padding: 9px 14px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    min-height: 42px;
+  }
+  .wa-input-wrap:focus-within {
+    border-color: var(--purple);
+    box-shadow: 0 0 0 3px var(--purple-soft);
+    background: var(--surface);
+  }
+  .wa-textarea {
+    flex: 1;
+    background: transparent;
+    border: none;
+    font-family: "Nunito", sans-serif;
+    font-size: 13.5px;
+    font-weight: 500;
+    color: var(--text);
+    resize: none;
+    max-height: 80px;
+    min-height: 24px;
+    height: 24px;
+    line-height: 1.6;
+    outline: none;
+    overflow-y: hidden;
+    display: block;
+    padding: 0;
+    vertical-align: middle;
+  }
+  .wa-textarea::placeholder { color: var(--muted); }
+  .wa-input-btn {
+    width: 36px; height: 36px; border-radius: 50%; border: none; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; transition: all 0.2s; flex-shrink: 0;
+    background: var(--surface2); color: var(--muted);
+  }
+  .wa-input-btn:hover { background: var(--purple-soft); color: var(--purple); transform: scale(1.08); }
+  .wa-send-btn {
+    width: 42px; height: 42px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--purple), var(--pink));
+    border: none; cursor: pointer; color: white; font-size: 16px;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    transition: transform 0.18s, box-shadow 0.18s;
+    box-shadow: 0 3px 12px rgba(155,111,212,0.4);
+  }
+  .wa-send-btn:hover  { transform: scale(1.08); box-shadow: 0 5px 18px rgba(155,111,212,0.5); }
+  .wa-send-btn:active { transform: scale(0.94); }
+
+  /* Recording bar */
+  .wa-recording-bar {
+    display: none; padding: 10px 16px;
+    background: rgba(232,72,85,.08); border-top: 1px solid rgba(232,72,85,.2);
+    align-items: center; gap: 10px; flex-shrink: 0;
+  }
+  .wa-recording-bar.show { display: flex; }
+  .wa-rec-dot { width:10px;height:10px;border-radius:50%;background:#e84855;animation:recPulse 1s infinite; }
+  @keyframes recPulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+  .wa-rec-time { font-size:.85rem;font-weight:700;color:#e84855;flex:1; }
+  .wa-rec-cancel {
+    background:none;border:none;cursor:pointer;color:var(--muted);
+    font-size:.8rem;font-weight:600;font-family:inherit;padding:4px 10px;border-radius:8px;transition:all .2s;
+  }
+  .wa-rec-cancel:hover { color:#e84855;background:rgba(232,72,85,.08); }
+  .wa-rec-send {
+    background:#e84855;border:none;cursor:pointer;color:white;
+    font-size:.8rem;font-weight:700;font-family:inherit;padding:6px 14px;border-radius:10px;transition:all .2s;
+  }
+  .wa-rec-send:hover { opacity:.85; }
+
+  /* Image preview overlay */
+  .wa-img-preview-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,.85); z-index: 9999;
+    align-items: center; justify-content: center; flex-direction: column; gap: 16px;
+  }
+  .wa-img-preview-overlay.show { display: flex; }
+  .wa-img-preview-overlay img { max-width:90vw;max-height:75vh;border-radius:16px;object-fit:contain; }
+  .wa-preview-actions { display:flex;gap:12px; }
+  .wa-preview-send {
+    padding:.65rem 2rem;background:var(--purple);border:none;border-radius:12px;
+    color:white;font-size:.9rem;font-weight:700;cursor:pointer;font-family:inherit;transition:all .2s;
+  }
+  .wa-preview-send:hover { opacity:.85; }
+  .wa-preview-cancel {
+    padding:.65rem 1.4rem;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);
+    border-radius:12px;color:white;font-size:.9rem;font-weight:600;cursor:pointer;font-family:inherit;
+  }
+
+  /* ══════════════════════════════════════
+   MOBILE RESPONSIVE
+══════════════════════════════════════ */
+  @media (max-width: 768px) {
+    /* Bottom nav is hidden on this page, so use full height */
+    .wa-wrap {
+      height: calc(100vh - var(--nav-h));
+    }
+
+    /* Also undo the base.html page-wrap padding-bottom that accounts for bottom nav */
+    .page-wrap {
+      padding-bottom: 0 !important;
+    }
+
+    .wa-left {
+      width: 100%; position: absolute; left: 0; top: 0; height: 100%;
+      z-index: 10; transition: transform 0.3s ease;
+    }
+    .wa-left.hidden { transform: translateX(-100%); }
+    .wa-right       { width: 100%; }
+    .wa-back-btn    { display: flex; }
+    .wa-wrap        { position: relative; }
+
+    .wa-input-area  { padding: 6px 8px; gap: 5px; }
+    .wa-input-btn   { width: 32px; height: 32px; font-size: 14px; }
+    .wa-send-btn    { width: 36px; height: 36px; font-size: 14px; }
+    .wa-input-wrap  { padding: 6px 12px; }
+
+    /* Swap gallery ↔ camera on mobile */
+    #photoBtn  { display: none !important; }
+    #cameraBtn { display: flex !important; }
+
+    .wa-smart-bar   { padding: 5px 10px; }
+    .wa-smart-btn   { font-size: 10px; padding: 4px 10px; }
+    .wa-messages    { padding: 10px 8px; }
+    .wa-bubble-row  { max-width: 85%; }
+  }
+  @media (max-width: 480px) {
+    .wa-input-btn { width: 30px; height: 30px; font-size: 13px; }
+    .wa-send-btn  { width: 36px; height: 36px; }
+  }
+</style>
+
+<div class="wa-wrap" id="waWrap">
+
+  <!-- ══ LEFT PANEL ══ -->
+  <div class="wa-left" id="waLeft">
+    <div class="wa-left-header">
+      <h2>💬 Messages</h2>
+      <div class="wa-left-header-actions">
+        <a href="{{ url_for('main.home') }}"    class="wa-icon-btn" title="Home">🏠</a>
+        <a href="{{ url_for('main.explore') }}" class="wa-icon-btn" title="Explore">🔭</a>
+      </div>
+    </div>
+
+    <div class="wa-search">
+      <input type="text" id="chatSearch" placeholder="Search conversations…"
+             oninput="filterChats(this.value)" />
+    </div>
+
+    <div class="wa-chat-list" id="chatList">
+      {% if partners %}
+        {% for p in partners %}
+        <a href="{{ url_for('main.conversation', username=p.user.username) }}"
+           class="wa-chat-item {% if active_user and active_user.id == p.user.id %}active{% endif %}"
+           data-name="{{ (p.user.display_name or p.user.username) | lower }}">
+
+          {% if p.user.profile_pic and p.user.profile_pic != 'default.jpg' %}
+          <img src="{{ url_for('static', filename='uploads/' + p.user.profile_pic) }}"
+               class="wa-chat-avatar" alt="{{ p.user.username }}" />
+          {% else %}
+          <div class="wa-chat-avatar-placeholder">
+            {{ (p.user.display_name or p.user.username)[0].upper() }}
+          </div>
+          {% endif %}
+
+          <div class="wa-chat-info">
+            <div class="wa-chat-name">{{ p.user.display_name or p.user.username }}</div>
+            <div class="wa-chat-preview">
+              {% if p.last_msg %}
+                {% if   p.last_msg.message_type == 'post_share' %}📤 Shared a post
+                {% elif p.last_msg.image  %}📷 Photo
+                {% elif p.last_msg.audio  %}🎤 Voice message
+                {% else %}{{ p.last_msg.content | truncate(35) }}
+                {% endif %}
+              {% endif %}
+            </div>
+          </div>
+
+          <div class="wa-chat-meta">
+            {% if p.last_msg %}
+            <span class="wa-chat-time">{{ p.last_msg.timestamp.strftime('%H:%M') }}</span>
+            {% endif %}
+            {% if p.unread > 0 %}
+            <span class="wa-unread-badge">{{ p.unread }}</span>
+            {% endif %}
+          </div>
+        </a>
+        {% endfor %}
+      {% else %}
+      <div class="wa-empty-left">
+        <div style="font-size:2.5rem;margin-bottom:.5rem">💬</div>
+        <div style="font-weight:700;color:var(--text);margin-bottom:.25rem">No conversations yet</div>
+        <div>Follow people back to start messaging</div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- ══ RIGHT PANEL ══ -->
+  <div class="wa-right">
+    {% if active_user %}
+
+    {# ── CHAT HEADER ── #}
+    <div class="wa-chat-header">
+      <a href="#" class="wa-back-btn" onclick="showLeft(); return false;">←</a>
+
+      {% if active_user.profile_pic and active_user.profile_pic != 'default.jpg' %}
+      <img src="{{ url_for('static', filename='uploads/' + active_user.profile_pic) }}"
+           class="wa-chat-header-avatar" alt="{{ active_user.username }}" />
+      {% else %}
+      <div style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,var(--purple),var(--pink));display:flex;align-items:center;justify-content:center;font-weight:800;color:white;font-size:1rem;flex-shrink:0;">
+        {{ (active_user.display_name or active_user.username)[0].upper() }}
+      </div>
+      {% endif %}
+
+      <div class="wa-chat-header-info">
+        <div class="wa-chat-header-name">{{ active_user.display_name or active_user.username }}</div>
+        <div class="wa-chat-header-status" id="chatStatus">Active now</div>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <a href="{{ url_for('main.profile', username=active_user.username) }}" class="wa-icon-btn">👤</a>
+      </div>
+    </div>
+
+    {# ── MESSAGES ── #}
+    <div class="wa-messages" id="waMessages">
+
+      {% if messages %}
+        {% set ns = namespace(last_date=none) %}
+        {% for msg in messages %}
+          {% set msg_date = msg.timestamp.strftime('%B %d, %Y') %}
+          {% if msg_date != ns.last_date %}
+          <div class="wa-date-divider"><span>{{ msg_date }}</span></div>
+          {% set ns.last_date = msg_date %}
+          {% endif %}
+
+          {% set is_mine = msg.sender_id == current_user.id %}
+          {% set side    = 'mine' if is_mine else 'theirs' %}
+
+          <div class="wa-bubble-row {{ 'mine' if is_mine else '' }}">
+
+            {# Avatar LEFT (theirs) #}
+            {% if not is_mine %}
+              {% if active_user.profile_pic and active_user.profile_pic != 'default.jpg' %}
+              <img src="{{ url_for('static', filename='uploads/' + active_user.profile_pic) }}"
+                   class="wa-avatar-sm" />
+              {% else %}
+              <div class="wa-avatar-sm">
+                {{ (active_user.display_name or active_user.username)[0].upper() }}
+              </div>
+              {% endif %}
+            {% endif %}
+
+            <div class="wa-bubble-wrap">
+
+              {# Image #}
+              {% if msg.image %}
+              <div class="wa-img-bubble {{ side }}"
+                   onclick="openImgViewer('{{ url_for('static', filename='uploads/' + msg.image) }}')">
+                <img src="{{ url_for('static', filename='uploads/' + msg.image) }}" alt="Photo" />
+              </div>
+
+              {# Audio #}
+              {% elif msg.audio %}
+              <div class="wa-audio-bubble {{ side }}">
+                <button class="wa-audio-play"
+                        onclick="toggleAudio(this,'{{ url_for('static', filename='uploads/' + msg.audio) }}')">▶</button>
+                <div class="wa-audio-waveform">
+                  {% for i in range(12) %}
+                  <span style="height:{{ [6,10,16,20,14,8,18,12,6,16,10,8][i] }}px"></span>
+                  {% endfor %}
+                </div>
+                <span class="wa-audio-dur" id="dur-{{ msg.id }}">0:00</span>
+              </div>
+
+              {# Shared post #}
+              {% elif msg.message_type == 'post_share' and msg.shared_post %}
+              <div class="wa-post-share {{ side }}">
+                <div class="wa-share-label">📤 Shared a post</div>
+                {% if msg.shared_post.image %}
+                <img src="{{ url_for('static', filename='uploads/' + msg.shared_post.image) }}"
+                     class="wa-share-img" />
+                {% endif %}
+                <div class="wa-share-body">
+                  <div class="wa-share-author">
+                    {% if msg.shared_post.author.profile_pic and msg.shared_post.author.profile_pic != 'default.jpg' %}
+                    <img src="{{ url_for('static', filename='uploads/' + msg.shared_post.author.profile_pic) }}" />
+                    {% endif %}
+                    <span>@{{ msg.shared_post.author.username }}</span>
+                  </div>
+                  {% if msg.shared_post.content %}
+                  <div class="wa-share-text">{{ msg.shared_post.content[:100] }}</div>
+                  {% endif %}
+                  <a href="{{ url_for('main.comment_post', post_id=msg.shared_post.id) }}"
+                     class="wa-share-link">View Post →</a>
+                </div>
+              </div>
+
+              {# Text #}
+              {% else %}
+              <div class="wa-bubble {{ side }}">{{ msg.content }}</div>
+              {% endif %}
+
+              <div class="wa-bubble-meta">
+                <span class="wa-time">{{ msg.timestamp.strftime('%H:%M') }}</span>
+                {% if is_mine %}
+                <span class="wa-tick">{% if msg.is_read %}✓✓{% else %}✓{% endif %}</span>
+                {% endif %}
+              </div>
+            </div>
+
+            {# Avatar RIGHT (mine) #}
+            {% if is_mine %}
+              {% if current_user.profile_pic and current_user.profile_pic != 'default.jpg' %}
+              <img src="{{ url_for('static', filename='uploads/' + current_user.profile_pic) }}"
+                   class="wa-avatar-sm" />
+              {% else %}
+              <div class="wa-avatar-sm">{{ current_user.username[0].upper() }}</div>
+              {% endif %}
+            {% endif %}
+
+          </div>{# /wa-bubble-row #}
+        {% endfor %}
+
+      {% else %}
+      <div style="align-self:stretch;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:var(--muted);padding:3rem;">
+        <div style="font-size:2.5rem">👋</div>
+        <div style="font-weight:700">Say hello to {{ active_user.display_name or active_user.username }}!</div>
+      </div>
+      {% endif %}
+
+      {# Typing indicator — always stays LEFT #}
+      <div class="wa-typing" id="waTyping">
+        <div class="wa-avatar-sm">
+          {{ (active_user.display_name or active_user.username)[0].upper() }}
+        </div>
+        <div class="wa-typing-bubble">
+          <div class="wa-t-dot"></div>
+          <div class="wa-t-dot"></div>
+          <div class="wa-t-dot"></div>
+        </div>
+      </div>
+
+    </div>{# /wa-messages #}
+
+    {# ── SMART REPLY ── #}
+    <div class="wa-smart-bar">
+      <button class="wa-smart-btn" id="smartBtn" onclick="loadSmartReplies()">✨ Smart Reply</button>
+      <div id="smartChips" style="display:flex;gap:5px;flex-wrap:wrap;align-items:center;"></div>
+    </div>
+
+    {# ── RECORDING BAR ── #}
+    <div class="wa-recording-bar" id="recBar">
+      <div class="wa-rec-dot"></div>
+      <span class="wa-rec-time" id="recTime">0:00</span>
+      <button class="wa-rec-cancel" onclick="cancelRecording()">✕ Cancel</button>
+      <button class="wa-rec-send"   onclick="stopAndSendRecording()">Send 🎤</button>
+    </div>
+
+    {# ── INPUT AREA ── #}
+    <div class="wa-input-area">
+      <!-- Gallery — desktop only -->
+      <input type="file" id="photoInput" accept="image/*" style="display:none"
+             onchange="previewPhoto(this)" />
+      <button class="wa-input-btn" id="photoBtn"
+              onclick="document.getElementById('photoInput').click()"
+              title="Send photo">📷</button>
+
+      <!-- Camera — mobile only (CSS swaps it in, hidden by default) -->
+      <input type="file" id="cameraInput" accept="image/*" capture="environment"
+             style="display:none" onchange="previewPhoto(this)" />
+      <button class="wa-input-btn" id="cameraBtn"
+              onclick="document.getElementById('cameraInput').click()"
+              title="Take photo"
+              style="display:none">📸</button>
+
+      <div class="wa-input-wrap">
+        <textarea class="wa-textarea" id="msgInput" placeholder="Type a message…"
+                  rows="1" oninput="autoResize(this); handleTyping();"></textarea>
+      </div>
+
+      <button class="wa-input-btn" id="micBtn" onclick="startRecording()" title="Voice message">🎤</button>
+      <button class="wa-send-btn"  onclick="sendMessage()">➤</button>
+    </div>
+
+    {% else %}
+    <div class="wa-no-chat">
+      <div class="icon">💬</div>
+      <h3>Select a conversation</h3>
+      <p>Choose someone from the left to start chatting</p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+{# ── IMAGE PREVIEW OVERLAY ── #}
+<div class="wa-img-preview-overlay" id="imgPreviewOverlay">
+  <img id="imgPreviewEl" src="" alt="Preview" />
+  <div class="wa-preview-actions">
+    <button class="wa-preview-cancel" onclick="cancelPhotoSend()">Cancel</button>
+    <button class="wa-preview-send"   onclick="sendPhoto()">Send Photo 📷</button>
+  </div>
+</div>
+
+{# ── IMAGE VIEWER ── #}
+<div id="imgViewer"
+     style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:9999;
+            align-items:center;justify-content:center;cursor:zoom-out;"
+     onclick="this.style.display='none'">
+  <img id="imgViewerEl" src=""
+       style="max-width:90vw;max-height:90vh;border-radius:12px;object-fit:contain;" />
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.min.js"></script>
+<script>
+  const socket        = io();
+  const otherUsername = "{{ active_user.username if active_user else '' }}";
+  const msgBox        = document.getElementById("waMessages");
+  if (msgBox) msgBox.scrollTop = msgBox.scrollHeight;
+
+  // ── SOCKET ──────────────────────────────────────
+  socket.on("new_message", (data) => {
+    appendMessage(data);
+    const typing = document.getElementById("waTyping");
+    if (typing) typing.classList.remove("show");
+    if (msgBox)  msgBox.scrollTop = msgBox.scrollHeight;
+  });
+  socket.on("user_typing", (data) => {
+    const typing = document.getElementById("waTyping");
+    const status = document.getElementById("chatStatus");
+    if (typing) typing.classList.add("show");
+    if (status) { status.textContent = `${data.display} is typing…`; status.className = "wa-chat-header-status typing"; }
+    if (msgBox)  msgBox.scrollTop = msgBox.scrollHeight;
+  });
+  socket.on("user_stop_typing", () => {
+    const typing = document.getElementById("waTyping");
+    const status = document.getElementById("chatStatus");
+    if (typing) typing.classList.remove("show");
+    if (status) { status.textContent = "Active now"; status.className = "wa-chat-header-status"; }
+  });
+
+  // ── TYPING ──────────────────────────────────────
+  let typingTimer = null;
+  function handleTyping() {
+    if (!otherUsername) return;
+    socket.emit("typing", { receiver: otherUsername });
+    clearTimeout(typingTimer);
+    typingTimer = setTimeout(() => socket.emit("stop_typing", { receiver: otherUsername }), 1500);
+  }
+
+  // ── SEND TEXT ────────────────────────────────────
+  function sendMessage() {
+    const input = document.getElementById("msgInput");
+    if (!input) return;
+    const content = input.value.trim();
+    if (!content || !otherUsername) return;
+    socket.emit("send_message", { receiver: otherUsername, content });
+    input.value = ""; input.style.height = "auto";
+    socket.emit("stop_typing", { receiver: otherUsername });
+    document.getElementById("smartChips").innerHTML = "";
+  }
+
+  document.addEventListener("DOMContentLoaded", () => {
+    const input = document.getElementById("msgInput");
+    if (input) {
+      input.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+      });
+    }
+    if (window.innerWidth <= 768 && otherUsername) hideLeft();
+  });
+
+  function autoResize(el) {
+    el.style.height = "24px";
+    el.style.height = Math.min(el.scrollHeight, 80) + "px";
+  }
+
+  // ── APPEND MESSAGE ───────────────────────────────
+  function appendMessage(data) {
+    if (!msgBox) return;
+    const isMine = data.is_mine;
+    const side   = isMine ? "mine" : "theirs";
+
+    const row = document.createElement("div");
+    row.className = `wa-bubble-row${isMine ? " mine" : ""}`;
+
+    let bubbleHtml = "";
+    if (data.msg_type === "image" && data.media_url) {
+      bubbleHtml = `<div class="wa-img-bubble ${side}" onclick="openImgViewer('${data.media_url}')"><img src="${data.media_url}" alt="Photo"></div>`;
+    } else if (data.msg_type === "audio" && data.media_url) {
+      bubbleHtml = `<div class="wa-audio-bubble ${side}"><button class="wa-audio-play" onclick="toggleAudio(this,'${data.media_url}')">▶</button><div class="wa-audio-waveform">${"<span></span>".repeat(12)}</div><span class="wa-audio-dur">0:00</span></div>`;
+    } else {
+      bubbleHtml = `<div class="wa-bubble ${side}">${escapeHtml(data.content)}</div>`;
+    }
+
+    const metaHtml   = `<div class="wa-bubble-meta"><span class="wa-time">${data.timestamp}</span>${isMine ? '<span class="wa-tick">✓</span>' : ""}</div>`;
+    const avatarHtml = `<div class="wa-avatar-sm">${escapeHtml(data.sender_display[0])}</div>`;
+    const wrapHtml   = `<div class="wa-bubble-wrap">${bubbleHtml}${metaHtml}</div>`;
+
+    row.innerHTML = isMine ? `${wrapHtml}${avatarHtml}` : `${avatarHtml}${wrapHtml}`;
+    msgBox.insertBefore(row, document.getElementById("waTyping"));
+    msgBox.scrollTop = msgBox.scrollHeight;
+  }
+
+  function escapeHtml(text) {
+    const d = document.createElement("div");
+    d.appendChild(document.createTextNode(text));
+    return d.innerHTML;
+  }
+
+  // ── PHOTO SEND ───────────────────────────────────
+  let selectedFile = null;
+  function previewPhoto(input) {
+    if (!input.files || !input.files[0]) return;
+    selectedFile = input.files[0];
+    const reader = new FileReader();
+    reader.onload = e => {
+      document.getElementById("imgPreviewEl").src = e.target.result;
+      document.getElementById("imgPreviewOverlay").classList.add("show");
+    };
+    reader.readAsDataURL(selectedFile);
+    input.value = "";
+  }
+  function cancelPhotoSend() {
+    selectedFile = null;
+    document.getElementById("imgPreviewOverlay").classList.remove("show");
+  }
+  function sendPhoto() {
+    if (!selectedFile || !otherUsername) return;
+    const formData = new FormData();
+    formData.append("media", selectedFile);
+    const btn = document.querySelector(".wa-preview-send");
+    btn.textContent = "Sending…"; btn.disabled = true;
+    fetch(`/messages/send-media/${otherUsername}`, { method: "POST", body: formData })
+      .then(r => r.json())
+      .then(data => {
+        if (data.success) {
+          appendMessage({ is_mine:true, content:"📷 Photo", msg_type:"image",
+            media_url:data.media_url, timestamp:data.timestamp,
+            sender_display:"{{ current_user.username }}" });
+          cancelPhotoSend();
+        }
+        btn.textContent = "Send Photo 📷"; btn.disabled = false;
+      })
+      .catch(() => { btn.textContent = "Send Photo 📷"; btn.disabled = false; });
+  }
+
+  // ── IMAGE VIEWER ─────────────────────────────────
+  function openImgViewer(src) {
+    document.getElementById("imgViewerEl").src = src;
+    document.getElementById("imgViewer").style.display = "flex";
+  }
+
+  // ── AUDIO RECORDING ──────────────────────────────
+  let mediaRecorder=null, audioChunks=[], recInterval=null, recSeconds=0;
+  function startRecording() {
+    if (!navigator.mediaDevices) { alert("Microphone not supported."); return; }
+    navigator.mediaDevices.getUserMedia({ audio: true })
+      .then(stream => {
+        mediaRecorder = new MediaRecorder(stream);
+        audioChunks   = [];
+        mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
+        mediaRecorder.start();
+        document.getElementById("recBar").classList.add("show");
+        recSeconds = 0;
+        recInterval = setInterval(() => {
+          recSeconds++;
+          const m=Math.floor(recSeconds/60), s=recSeconds%60;
+          document.getElementById("recTime").textContent = `${m}:${s.toString().padStart(2,"0")}`;
+        }, 1000);
+      })
+      .catch(() => alert("Could not access microphone."));
+  }
+  function cancelRecording() {
+    if (mediaRecorder) { mediaRecorder.stop(); mediaRecorder.stream.getTracks().forEach(t=>t.stop()); }
+    clearInterval(recInterval);
+    document.getElementById("recBar").classList.remove("show");
+    audioChunks = [];
+  }
+  function stopAndSendRecording() {
+    if (!mediaRecorder || !otherUsername) return;
+    mediaRecorder.onstop = () => {
+      const blob = new Blob(audioChunks, { type:"audio/webm" });
+      const fd   = new FormData();
+      fd.append("media", blob, `voice_${Date.now()}.webm`);
+      fetch(`/messages/send-media/${otherUsername}`, { method:"POST", body:fd })
+        .then(r => r.json())
+        .then(data => {
+          if (data.success) appendMessage({ is_mine:true, content:"🎤 Voice", msg_type:"audio",
+            media_url:data.media_url, timestamp:data.timestamp,
+            sender_display:"{{ current_user.username }}" });
+        });
+      mediaRecorder.stream.getTracks().forEach(t => t.stop());
+    };
+    mediaRecorder.stop();
+    clearInterval(recInterval);
+    document.getElementById("recBar").classList.remove("show");
+  }
+
+  // ── AUDIO PLAYBACK ────────────────────────────────
+  const audioPlayers = {};
+  function toggleAudio(btn, src) {
+    if (!audioPlayers[src]) {
+      audioPlayers[src] = new Audio(src);
+      const durEl = btn.parentElement.querySelector(".wa-audio-dur");
+      audioPlayers[src].onloadedmetadata = () => {
+        if (durEl) {
+          const t = audioPlayers[src].duration;
+          durEl.textContent = `${Math.floor(t/60)}:${Math.floor(t%60).toString().padStart(2,"0")}`;
+        }
+      };
+      audioPlayers[src].onended = () => { btn.textContent = "▶"; };
+    }
+    const audio = audioPlayers[src];
+    if (audio.paused) { audio.play(); btn.textContent="⏸"; }
+    else              { audio.pause(); btn.textContent="▶"; }
+  }
+
+  // ── SMART REPLY ───────────────────────────────────
+  function loadSmartReplies() {
+    const btn     = document.getElementById("smartBtn");
+    const chips   = document.getElementById("smartChips");
+    const bubbles = document.querySelectorAll(".wa-bubble.theirs");
+    const message = bubbles.length > 0 ? bubbles[bubbles.length-1].innerText.trim() : "";
+    if (!message) { chips.innerHTML='<span style="font-size:11px;color:var(--muted)">No messages yet.</span>'; return; }
+    btn.textContent="⏳"; btn.disabled=true; chips.innerHTML="";
+    fetch("/ai/smart-reply", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({message}) })
+      .then(r=>r.json())
+      .then(data => {
+        btn.textContent="✨ Smart Reply"; btn.disabled=false;
+        if (data.replies) {
+          data.replies.forEach(r => {
+            const chip=document.createElement("button");
+            chip.className="wa-smart-chip"; chip.textContent=r;
+            chip.onclick=()=>{ const inp=document.getElementById("msgInput"); if(inp){inp.value=r;inp.focus();} chips.innerHTML=""; };
+            chips.appendChild(chip);
+          });
+        }
+      })
+      .catch(()=>{ btn.textContent="✨ Smart Reply"; btn.disabled=false; });
+  }
+
+  // ── CHAT SEARCH ───────────────────────────────────
+  function filterChats(q) {
+    document.querySelectorAll(".wa-chat-item").forEach(item => {
+      item.style.display = (item.dataset.name||"").includes(q.toLowerCase()) ? "flex" : "none";
+    });
+  }
+
+  // ── MOBILE PANEL ──────────────────────────────────
+  function showLeft() { const l=document.getElementById("waLeft"); if(l) l.classList.remove("hidden"); }
+  function hideLeft() { const l=document.getElementById("waLeft"); if(l&&window.innerWidth<=768) l.classList.add("hidden"); }
+</script>
+{% endblock %}

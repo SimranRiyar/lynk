@@ -1,0 +1,192 @@
+{% extends "base.html" %}
+{% block content %}
+
+<style>
+.story-viewer {
+    max-width: 400px; margin: 0 auto; position: relative;
+}
+.story-slide {
+    display: none; position: relative;
+}
+.story-slide.active { display: block; }
+.story-card {
+    border-radius: 24px; overflow: hidden;
+    height: 600px; position: relative;
+    box-shadow: 0 16px 48px rgba(0,0,0,0.3);
+}
+.story-card-bg {
+    width: 100%; height: 100%;
+    display: flex; align-items: center; justify-content: center;
+}
+.story-card-bg img {
+    width: 100%; height: 100%; object-fit: cover;
+}
+.story-card-text {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    padding: 32px; text-align: center;
+    font-size: 24px; font-weight: 700; line-height: 1.5;
+    text-shadow: 0 2px 8px rgba(0,0,0,0.3);
+}
+.story-header {
+    position: absolute; top: 0; left: 0; right: 0; z-index: 10;
+    padding: 16px 20px;
+    background: linear-gradient(180deg, rgba(0,0,0,0.5) 0%, transparent 100%);
+}
+.story-progress-bar {
+    display: flex; gap: 4px; margin-bottom: 12px;
+}
+.story-progress-seg {
+    flex: 1; height: 3px; border-radius: 99px;
+    background: rgba(255,255,255,0.3); overflow: hidden;
+}
+.story-progress-fill {
+    height: 100%; background: white; width: 0%;
+    transition: width linear;
+}
+.story-user-info {
+    display: flex; align-items: center; gap: 10px;
+}
+.story-user-info img {
+    width: 36px; height: 36px; border-radius: 50%;
+    object-fit: cover; border: 2px solid white;
+}
+.story-user-info .name { color: white; font-weight: 700; font-size: 14px; }
+.story-user-info .time { color: rgba(255,255,255,0.75); font-size: 12px; font-weight: 500; }
+.story-footer {
+    position: absolute; bottom: 0; left: 0; right: 0; z-index: 10;
+    padding: 20px;
+    background: linear-gradient(0deg, rgba(0,0,0,0.4) 0%, transparent 100%);
+    display: flex; justify-content: space-between; align-items: center;
+}
+
+/* Navigation arrows */
+.story-nav {
+    display: flex; justify-content: space-between; margin-top: 16px;
+}
+.story-nav button {
+    padding: 10px 20px; border-radius: 12px;
+    background: var(--surface); border: 1.5px solid var(--border);
+    color: var(--text); font-weight: 700; font-size: 14px;
+    cursor: pointer; transition: all 0.2s;
+    font-family: 'Nunito', sans-serif;
+}
+.story-nav button:hover { background: var(--purple-soft); border-color: var(--purple); color: var(--purple); }
+.story-nav button:disabled { opacity: 0.3; cursor: not-allowed; }
+</style>
+
+<div class="story-viewer">
+
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:20px;">
+        <a href="{{ url_for('main.home') }}"
+           style="color:var(--muted); font-size:14px; font-weight:600; text-decoration:none;">← Back</a>
+        <span style="font-size:14px; font-weight:600; color:var(--muted);">
+            {{ stories | length }} story{{ 'stories' if stories | length != 1 else '' }}
+        </span>
+    </div>
+
+    {% for story in stories %}
+    <div class="story-slide {% if loop.first %}active{% endif %}" id="slide-{{ loop.index0 }}">
+        <div class="story-card">
+
+            <!-- Background -->
+            <div class="story-card-bg" style="background:{{ story.bg_color }};">
+                {% if story.image %}
+                    <img src="{{ url_for('static', filename='uploads/' + story.image) }}">
+                {% endif %}
+            </div>
+
+            <!-- Text overlay -->
+            {% if story.text %}
+            <div class="story-card-text" style="color:{{ story.text_color }};">
+                {{ story.text }}
+            </div>
+            {% endif %}
+
+            <!-- Header -->
+            <div class="story-header">
+                <!-- Progress bars -->
+                <div class="story-progress-bar">
+                    {% for s in stories %}
+                    <div class="story-progress-seg">
+                        <div class="story-progress-fill" id="prog-{{ loop.index0 }}"
+                             style="width:0%"></div>
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <!-- User info -->
+                <div class="story-user-info" style="justify-content:space-between;">
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        {% if user.profile_pic and user.profile_pic != 'default.jpg' %}
+                            <img src="{{ url_for('static', filename='uploads/' + user.profile_pic) }}">
+                        {% else %}
+                            <img src="{{ url_for('static', filename='img/default_avatar.svg') }}">
+                        {% endif %}
+                        <div>
+                            <div class="name">{{ user.username }}</div>
+                            <div class="time">{{ story.time_left() }} left</div>
+                        </div>
+                    </div>
+                    {% if user == current_user %}
+                    <a href="{{ url_for('main.delete_story', story_id=story.id) }}"
+                       style="color:rgba(255,255,255,0.8); font-size:18px; text-decoration:none;"
+                       onclick="return confirm('Delete this story?')">🗑</a>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="story-footer">
+                <span style="color:rgba(255,255,255,0.8); font-size:13px; font-weight:600;">
+                    👁 {{ story.views | length }} view{{ 's' if story.views | length != 1 }}
+                </span>
+                <span style="color:rgba(255,255,255,0.7); font-size:12px; font-weight:500;">
+                    {{ story.created_at.strftime('%b %d · %H:%M') }}
+                </span>
+            </div>
+
+        </div>
+    </div>
+    {% endfor %}
+
+    <!-- Navigation -->
+    <div class="story-nav">
+        <button onclick="prevStory()" id="btnPrev" disabled>← Prev</button>
+        <span id="storyCounter" style="font-size:14px; font-weight:600; color:var(--muted); align-self:center;">
+            1 / {{ stories | length }}
+        </span>
+        <button onclick="nextStory()" id="btnNext" {% if stories | length <= 1 %}disabled{% endif %}>Next →</button>
+    </div>
+
+</div>
+
+<script>
+const total = {{ stories | length }};
+let current = 0;
+
+function showSlide(n) {
+    document.querySelectorAll('.story-slide').forEach((s, i) => {
+        s.classList.toggle('active', i === n);
+    });
+    for (let i = 0; i < total; i++) {
+        const fill = document.getElementById('prog-' + i);
+        if (fill) fill.style.width = i < n ? '100%' : '0%';
+    }
+    document.getElementById('storyCounter').textContent = (n + 1) + ' / ' + total;
+    document.getElementById('btnPrev').disabled = n === 0;
+    document.getElementById('btnNext').disabled = n === total - 1;
+    current = n;
+}
+
+function nextStory() { if (current < total - 1) showSlide(current + 1); }
+function prevStory() { if (current > 0) showSlide(current - 1); }
+
+// Auto advance after 5 seconds
+let timer = setInterval(() => {
+    if (current < total - 1) nextStory();
+    else clearInterval(timer);
+}, 5000);
+</script>
+
+{% endblock %}

@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="center-wrapper">
+    <div class="card auth-card" style="max-width:420px;">
+        <h2 style="font-family:'Playfair Display',serif;font-size:26px;font-weight:700;margin-bottom:6px;">
+            🔐 Two-Factor Auth
+        </h2>
+        <p class="auth-subtitle">
+            We sent a 6-digit code to your email. Enter it below to continue.
+        </p>
+
+        <form method="POST">
+            <div class="form-group">
+                <label>Verification Code</label>
+                <input type="text" name="code" maxlength="6"
+                       placeholder="000000"
+                       style="font-size:28px;font-weight:900;letter-spacing:8px;
+                              text-align:center;"
+                       autofocus autocomplete="one-time-code">
+            </div>
+            <button type="submit" class="btn w-full" style="margin-top:8px;">
+                Verify & Login →
+            </button>
+        </form>
+
+        <div style="text-align:center;margin-top:16px;">
+            <a href="{{ url_for('main.login') }}"
+               style="color:var(--muted);font-size:13px;font-weight:600;text-decoration:none;">
+                ← Back to Login
+            </a>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

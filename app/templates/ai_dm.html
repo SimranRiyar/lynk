@@ -1,0 +1,319 @@
+{% extends "base.html" %}
+{% block content %}
+
+<style>
+.chat-wrap {
+    max-width: 700px; margin: 0 auto;
+    display: flex; flex-direction: column;
+    height: calc(100vh - var(--nav-h) - 72px);
+}
+.chat-header {
+    background: var(--surface); border: 1.5px solid var(--border);
+    border-radius: 20px 20px 0 0; padding: 16px 24px;
+    display: flex; align-items: center; gap: 14px;
+    box-shadow: 0 2px 14px var(--shadow);
+}
+.chat-name { font-weight: 800; font-size: 16px; color: var(--text); }
+.chat-status { font-size: 12px; color: var(--muted); font-weight: 500; }
+
+.chat-messages {
+    flex: 1; overflow-y: auto;
+    background: var(--surface); border-left: 1.5px solid var(--border);
+    border-right: 1.5px solid var(--border);
+    padding: 20px; display: flex; flex-direction: column; gap: 12px;
+    scroll-behavior: smooth;
+}
+.chat-messages::-webkit-scrollbar { width: 4px; }
+.chat-messages::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
+
+.bubble-row {
+    display: flex; align-items: flex-end; gap: 8px; max-width: 80%;
+}
+.bubble-row.mine { flex-direction: row-reverse; margin-left: auto; }
+
+.ai-avatar {
+    width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0;
+    background: linear-gradient(135deg, var(--purple), var(--pink));
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px;
+}
+.bubble-avatar {
+    width: 28px; height: 28px; border-radius: 50%; object-fit: cover;
+    border: 2px solid var(--pink); flex-shrink: 0;
+}
+.bubble {
+    max-width: 65%; min-width: 80px; padding: 10px 16px; border-radius: 18px;
+    font-size: 14px; font-weight: 500; line-height: 1.6;
+    word-break: break-word;
+}
+.bubble.theirs {
+    background: var(--surface2); color: var(--text);
+    border: 1.5px solid var(--border);
+    border-bottom-left-radius: 4px;
+}
+.bubble.mine {
+    background: linear-gradient(135deg, var(--purple), var(--pink));
+    color: white; border-bottom-right-radius: 4px;
+}
+.bubble-time {
+    font-size: 10px; opacity: 0.6; margin-top: 6px;
+    text-align: right;
+}
+
+.typing-indicator {
+    display: none; align-items: center; gap: 8px; padding: 4px 0;
+}
+.typing-indicator.show { display: flex; }
+.typing-dots {
+    background: var(--surface2); border: 1.5px solid var(--border);
+    border-radius: 18px; padding: 10px 16px;
+    display: flex; gap: 4px; align-items: center;
+}
+.typing-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--muted); animation: typingBounce 1.2s infinite;
+}
+.typing-dot:nth-child(2) { animation-delay: 0.2s; }
+.typing-dot:nth-child(3) { animation-delay: 0.4s; }
+@keyframes typingBounce {
+    0%, 60%, 100% { transform: translateY(0); }
+    30% { transform: translateY(-6px); }
+}
+
+.chat-input-area {
+    background: var(--surface); border: 1.5px solid var(--border);
+    border-radius: 0 0 20px 20px; padding: 16px 20px;
+    display: flex; gap: 12px; align-items: flex-end;
+    box-shadow: 0 4px 20px var(--shadow);
+}
+.chat-input {
+    flex: 1; background: var(--surface2); border: 1.5px solid var(--border);
+    border-radius: 24px; padding: 12px 18px; font-size: 14px;
+    font-family: 'Nunito', sans-serif; font-weight: 500;
+    color: var(--text); resize: none; max-height: 120px;
+    transition: border-color 0.2s, box-shadow 0.2s; line-height: 1.5;
+}
+.chat-input:focus {
+    outline: none; border-color: var(--purple);
+    box-shadow: 0 0 0 3px var(--purple-soft);
+    background: var(--surface);
+}
+.chat-send-btn {
+    width: 44px; height: 44px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--purple), var(--pink));
+    border: none; cursor: pointer; color: white;
+    font-size: 18px; display: flex; align-items: center;
+    justify-content: center; flex-shrink: 0;
+    transition: transform 0.2s, box-shadow 0.2s;
+    box-shadow: 0 4px 14px rgba(155,111,212,0.4);
+}
+.chat-send-btn:hover { transform: scale(1.1); }
+.chat-send-btn:active { transform: scale(0.95); }
+
+@keyframes msgIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+</style>
+
+<div class="chat-wrap">
+
+    <!-- Header -->
+    <div class="chat-header">
+        <a href="{{ url_for('main.inbox') }}"
+           style="color:var(--muted);text-decoration:none;font-size:20px;margin-right:4px;">←</a>
+        <div style="width:44px;height:44px;border-radius:50%;flex-shrink:0;
+                    background:linear-gradient(135deg,var(--purple),var(--pink));
+                    display:flex;align-items:center;justify-content:center;font-size:22px;
+                    box-shadow:0 0 0 3px var(--pink-soft);">🤖</div>
+        <div style="flex:1;">
+            <div class="chat-name">Lynk AI</div>
+            <div class="chat-status">
+                <span style="display:inline-block;width:8px;height:8px;border-radius:50%;
+                             background:#5cc97a;margin-right:4px;"></span>
+                Always available ✨
+            </div>
+        </div>
+        <button onclick="clearAiChat()" class="btn btn-ghost btn-sm">🗑️ Clear</button>
+    </div>
+
+    <!-- Messages -->
+    <div class="chat-messages" id="chatMessages">
+
+        <!-- Welcome message -->
+        <div class="bubble-row" id="welcomeMsg">
+            <div class="ai-avatar">🤖</div>
+            <div>
+                <div class="bubble theirs">
+                    Hey {{ current_user.display_name or current_user.username }}! 👋
+                    I'm Lynk AI — your personal assistant inside Lynk.
+                    I can help you write captions, suggest hashtags, craft a bio,
+                    brainstorm post ideas, answer questions, or just have a chat.
+                    What's on your mind? ✨
+                </div>
+                <div style="font-size:10px;color:var(--muted);margin-top:4px;padding-left:4px;">Just now</div>
+            </div>
+        </div>
+
+        <!-- Suggestion chips -->
+        <div id="suggestionChips"
+             style="display:flex;flex-wrap:wrap;gap:8px;margin-left:36px;margin-top:4px;">
+            {% for chip in [
+                "✍️ Write me a caption",
+                "🏷️ Suggest hashtags for my post",
+                "📝 Write my bio",
+                "💡 Give me post ideas",
+                "😂 Tell me a joke"
+            ] %}
+            <button onclick="useChip(this.textContent)"
+                    style="padding:7px 14px;border-radius:99px;border:1.5px solid var(--border);
+                           background:var(--surface2);color:var(--muted);font-size:13px;
+                           font-weight:600;cursor:pointer;font-family:'Nunito',sans-serif;
+                           transition:all 0.2s;"
+                    onmouseover="this.style.borderColor='var(--purple)';this.style.color='var(--purple)';this.style.background='var(--purple-soft)'"
+                    onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--muted)';this.style.background='var(--surface2)'">
+                {{ chip }}
+            </button>
+            {% endfor %}
+        </div>
+
+        <!-- Typing indicator -->
+        <div class="typing-indicator" id="typingIndicator">
+            <div class="ai-avatar">🤖</div>
+            <div class="typing-dots">
+                <div class="typing-dot"></div>
+                <div class="typing-dot"></div>
+                <div class="typing-dot"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Input -->
+    <div class="chat-input-area">
+        <textarea class="chat-input" id="msgInput"
+                  placeholder="Message Lynk AI…" rows="1"
+                  oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,120)+'px'"></textarea>
+        <button class="chat-send-btn" onclick="sendMessage()">➤</button>
+    </div>
+</div>
+
+<script>
+const chatBox = document.getElementById('chatMessages');
+let conversationHistory = [];
+const myPic = "{{ url_for('static', filename='uploads/' + current_user.profile_pic) if current_user.profile_pic and current_user.profile_pic != 'default.jpg' else url_for('static', filename='img/default_avatar.svg') }}";
+
+chatBox.scrollTop = chatBox.scrollHeight;
+
+document.getElementById('msgInput').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendMessage();
+    }
+});
+
+function useChip(text) {
+    document.getElementById('msgInput').value = text;
+    document.getElementById('suggestionChips').style.display = 'none';
+    sendMessage();
+}
+
+function clearAiChat() {
+    conversationHistory = [];
+    // remove everything except the typing indicator
+    const typing = document.getElementById('typingIndicator');
+    chatBox.innerHTML = '';
+    chatBox.appendChild(typing);
+    appendAiMessage("Chat cleared! What would you like to talk about? ✨");
+}
+
+function getNow() {
+    return new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+}
+
+function appendUserMessage(text) {
+    const row = document.createElement('div');
+    row.className = 'bubble-row mine';
+    row.style.animation = 'msgIn 0.25s ease';
+    row.innerHTML = `
+        <div>
+            <div class="bubble mine">${escapeHtml(text)}</div>
+            <div style="font-size:10px;color:var(--muted);margin-top:4px;padding-right:4px;text-align:right;">${getNow()}</div>
+        </div>
+        <img src="${myPic}" class="bubble-avatar">`;
+    chatBox.insertBefore(row, document.getElementById('typingIndicator'));
+    chatBox.scrollTop = chatBox.scrollHeight;
+}
+
+function appendAiMessage(text) {
+    const row = document.createElement('div');
+    row.className = 'bubble-row';
+    row.style.animation = 'msgIn 0.3s ease';
+    const html = text
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\*(.*?)\*/g, '<em>$1</em>')
+        .replace(/\n/g, '<br>');
+    row.innerHTML = `
+        <div class="ai-avatar">🤖</div>
+        <div>
+            <div class="bubble theirs">${html}</div>
+            <div style="font-size:10px;color:var(--muted);margin-top:4px;padding-left:4px;">${getNow()}</div>
+        </div>`;
+    chatBox.insertBefore(row, document.getElementById('typingIndicator'));
+    chatBox.scrollTop = chatBox.scrollHeight;
+}
+
+async function sendMessage() {
+    const input = document.getElementById('msgInput');
+    const text = input.value.trim();
+    if (!text) return;
+
+    // hide chips after first message
+    document.getElementById('suggestionChips').style.display = 'none';
+
+    input.value = '';
+    input.style.height = 'auto';
+
+    conversationHistory.push({ role: 'user', content: text });
+    appendUserMessage(text);
+
+    // show typing
+    document.getElementById('typingIndicator').classList.add('show');
+    chatBox.scrollTop = chatBox.scrollHeight;
+
+    const btn = document.querySelector('.chat-send-btn');
+    btn.disabled = true;
+    btn.style.opacity = '0.5';
+
+    try {
+        const res = await fetch('/ai/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ messages: conversationHistory })
+        });
+        const data = await res.json();
+        document.getElementById('typingIndicator').classList.remove('show');
+
+        if (data.reply) {
+            conversationHistory.push({ role: 'assistant', content: data.reply });
+            appendAiMessage(data.reply);
+        } else {
+            appendAiMessage('⚠️ Something went wrong. Please try again.');
+        }
+    } catch (err) {
+        document.getElementById('typingIndicator').classList.remove('show');
+        appendAiMessage('⚠️ Network error. Please check your connection.');
+    }
+
+    btn.disabled = false;
+    btn.style.opacity = '1';
+    input.focus();
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.appendChild(document.createTextNode(text));
+    return div.innerHTML;
+}
+</script>
+
+{% endblock %}

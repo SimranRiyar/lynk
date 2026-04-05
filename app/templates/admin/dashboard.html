@@ -1,0 +1,493 @@
+{% extends "base.html" %}
+{% block title %}Admin Dashboard — LYNK{% endblock %}
+
+{% block content %}
+<style>
+/* ── Light theme fixes ── */
+[data-theme="light"] .admin-header {
+    background: linear-gradient(135deg, #f3f0ff, #ede9fe) !important;
+    border-color: rgba(139,92,246,.2) !important;
+}
+[data-theme="light"] .admin-header h1 {
+    background: linear-gradient(135deg, #dc2626, #ea580c) !important;
+    -webkit-background-clip: text !important;
+    -webkit-text-fill-color: transparent !important;
+    background-clip: text !important;
+}
+[data-theme="light"] .admin-header p { color: rgba(0,0,0,.5) !important; }
+
+[data-theme="light"] .admin-nav a {
+    background: rgba(0,0,0,.04) !important;
+    border-color: rgba(0,0,0,.1) !important;
+    color: rgba(0,0,0,.55) !important;
+}
+[data-theme="light"] .admin-nav a:hover,
+[data-theme="light"] .admin-nav a.active {
+    background: rgba(220,38,38,.08) !important;
+    border-color: rgba(220,38,38,.2) !important;
+    color: #dc2626 !important;
+}
+
+[data-theme="light"] .stat-card {
+    background: rgba(0,0,0,.03) !important;
+    border-color: rgba(0,0,0,.08) !important;
+}
+[data-theme="light"] .stat-card .val {
+    background: linear-gradient(135deg, #dc2626, #ea580c) !important;
+    -webkit-background-clip: text !important;
+    -webkit-text-fill-color: transparent !important;
+    background-clip: text !important;
+}
+[data-theme="light"] .stat-card .icon { filter: none !important; }
+[data-theme="light"] .stat-card .lbl { color: rgba(0,0,0,.4) !important; }
+[data-theme="light"] .stat-card .sub { color: rgba(0,0,0,.3) !important; }
+
+[data-theme="light"] .panel,
+[data-theme="light"] .users-table,
+[data-theme="light"] .report-card,
+[data-theme="light"] .post-card {
+    background: rgba(0,0,0,.02) !important;
+    border-color: rgba(0,0,0,.08) !important;
+}
+[data-theme="light"] .panel-header {
+    border-color: rgba(0,0,0,.06) !important;
+}
+[data-theme="light"] .panel-header h3 { color: rgba(0,0,0,.7) !important; }
+[data-theme="light"] .panel-header a { color: #dc2626 !important; }
+
+[data-theme="light"] .report-row,
+[data-theme="light"] .user-row {
+    border-color: rgba(0,0,0,.05) !important;
+}
+[data-theme="light"] .report-row:hover,
+[data-theme="light"] .user-row:hover {
+    background: rgba(0,0,0,.02) !important;
+}
+
+[data-theme="light"] .user-name,
+[data-theme="light"] .post-author-name { color: rgba(0,0,0,.8) !important; }
+[data-theme="light"] .user-email,
+[data-theme="light"] .user-meta,
+[data-theme="light"] .report-meta,
+[data-theme="light"] .post-time,
+[data-theme="light"] .cell { color: rgba(0,0,0,.45) !important; }
+
+[data-theme="light"] .table-header {
+    color: rgba(0,0,0,.35) !important;
+    border-color: rgba(0,0,0,.06) !important;
+}
+[data-theme="light"] .user-row { border-color: rgba(0,0,0,.04) !important; }
+[data-theme="light"] .user-row:hover { background: rgba(0,0,0,.02) !important; }
+
+[data-theme="light"] .search-bar input {
+    background: rgba(0,0,0,.04) !important;
+    border-color: rgba(0,0,0,.1) !important;
+    color: rgba(0,0,0,.85) !important;
+}
+[data-theme="light"] .search-bar input:focus {
+    border-color: rgba(220,38,38,.3) !important;
+}
+[data-theme="light"] .search-bar button {
+    background: rgba(220,38,38,.08) !important;
+    border-color: rgba(220,38,38,.2) !important;
+    color: #dc2626 !important;
+}
+
+[data-theme="light"] .filter-tab {
+    background: rgba(0,0,0,.03) !important;
+    border-color: rgba(0,0,0,.1) !important;
+    color: rgba(0,0,0,.5) !important;
+}
+[data-theme="light"] .filter-tab:hover,
+[data-theme="light"] .filter-tab.active {
+    background: rgba(220,38,38,.08) !important;
+    border-color: rgba(220,38,38,.2) !important;
+    color: #dc2626 !important;
+}
+
+[data-theme="light"] .report-desc {
+    background: rgba(0,0,0,.03) !important;
+    color: rgba(0,0,0,.55) !important;
+    border-left-color: rgba(220,38,38,.3) !important;
+}
+[data-theme="light"] .post-preview {
+    background: rgba(0,0,0,.03) !important;
+    border-color: rgba(0,0,0,.07) !important;
+}
+[data-theme="light"] .post-content-preview {
+    background: rgba(0,0,0,.03) !important;
+    color: rgba(0,0,0,.6) !important;
+    border-left-color: rgba(0,0,0,.1) !important;
+}
+[data-theme="light"] .post-stats { color: rgba(0,0,0,.4) !important; }
+
+[data-theme="light"] .act-btn.view,
+[data-theme="light"] .p-btn.view,
+[data-theme="light"] .r-btn.view {
+    background: rgba(139,92,246,.08) !important;
+    border-color: rgba(139,92,246,.2) !important;
+    color: #7c3aed !important;
+}
+[data-theme="light"] .act-btn.ban,
+[data-theme="light"] .act-btn.delete,
+[data-theme="light"] .p-btn.delete,
+[data-theme="light"] .r-btn.delete-post {
+    background: rgba(220,38,38,.07) !important;
+    border-color: rgba(220,38,38,.2) !important;
+    color: #dc2626 !important;
+}
+[data-theme="light"] .act-btn.unban,
+[data-theme="light"] .r-btn.resolve {
+    background: rgba(16,185,129,.07) !important;
+    border-color: rgba(16,185,129,.2) !important;
+    color: #059669 !important;
+}
+[data-theme="light"] .r-btn.dismiss,
+[data-theme="light"] .act-btn {
+    background: rgba(0,0,0,.04) !important;
+    border-color: rgba(0,0,0,.1) !important;
+    color: rgba(0,0,0,.55) !important;
+}
+
+[data-theme="light"] .page-btn {
+    background: rgba(0,0,0,.03) !important;
+    border-color: rgba(0,0,0,.08) !important;
+    color: rgba(0,0,0,.5) !important;
+}
+[data-theme="light"] .page-btn.active,
+[data-theme="light"] .page-btn:hover {
+    background: rgba(220,38,38,.08) !important;
+    border-color: rgba(220,38,38,.2) !important;
+    color: #dc2626 !important;
+}
+
+[data-theme="light"] .empty-panel,
+[data-theme="light"] .empty-state { color: rgba(0,0,0,.4) !important; }
+[data-theme="light"] .empty-state { 
+    background: rgba(0,0,0,.02) !important;
+    border-color: rgba(0,0,0,.08) !important;
+}
+
+[data-theme="light"] .confirm-box {
+    background: #fff !important;
+    border-color: rgba(220,38,38,.2) !important;
+}
+[data-theme="light"] .confirm-box h4 { color: #dc2626 !important; }
+[data-theme="light"] .confirm-box p { color: rgba(0,0,0,.5) !important; }
+[data-theme="light"] .ban-reason-input {
+    background: rgba(0,0,0,.04) !important;
+    border-color: rgba(220,38,38,.15) !important;
+    color: rgba(0,0,0,.8) !important;
+}
+
+[data-theme="light"] .grid-2 .panel { background: rgba(0,0,0,.02) !important; }
+.admin-wrap { max-width: 1100px; margin: 0 auto; padding: 2rem 1rem; }
+
+.admin-header {
+    background: linear-gradient(135deg, #1a0a2e, #0d1b2a);
+    border: 1px solid rgba(239,68,68,.25);
+    border-radius: 20px; padding: 1.75rem 2rem;
+    margin-bottom: 2rem; position: relative; overflow: hidden;
+    display: flex; align-items: center; justify-content: space-between;
+    flex-wrap: wrap; gap: 1rem;
+}
+.admin-header::before {
+    content: ''; position: absolute; top: -60px; right: -60px;
+    width: 200px; height: 200px;
+    background: radial-gradient(circle, rgba(239,68,68,.1), transparent 70%);
+    pointer-events: none;
+}
+.admin-header h1 {
+    font-size: 1.6rem; font-weight: 800;
+    background: linear-gradient(135deg, #f87171, #fb923c);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+.admin-header p { color: rgba(255,255,255,.4); font-size: .85rem; margin-top: .2rem; }
+.admin-nav { display: flex; gap: .6rem; flex-wrap: wrap; }
+.admin-nav a {
+    padding: .45rem 1rem; border-radius: 10px; font-size: .82rem; font-weight: 600;
+    text-decoration: none; transition: all .2s;
+    border: 1px solid rgba(255,255,255,.1);
+    background: rgba(255,255,255,.05); color: rgba(255,255,255,.6);
+}
+.admin-nav a:hover, .admin-nav a.active {
+    background: rgba(239,68,68,.15);
+    border-color: rgba(239,68,68,.3);
+    color: #f87171;
+}
+
+.stats-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 1rem; margin-bottom: 2rem;
+}
+.stat-card {
+    background: rgba(255,255,255,.04);
+    border: 1px solid rgba(255,255,255,.08);
+    border-radius: 16px; padding: 1.25rem;
+    text-align: center; transition: border-color .2s;
+}
+.stat-card:hover { border-color: rgba(239,68,68,.2); }
+.stat-card .icon { font-size: 1.75rem; margin-bottom: .5rem; display: block; }
+.stat-card .val {
+    font-size: 2rem; font-weight: 900; display: block; margin-bottom: .2rem;
+    background: linear-gradient(135deg, #f87171, #fb923c);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+.stat-card .lbl {
+    font-size: .72rem; color: rgba(255,255,255,.35);
+    text-transform: uppercase; letter-spacing: .5px;
+}
+.stat-card .sub {
+    font-size: .72rem; color: rgba(255,255,255,.25); margin-top: .3rem;
+}
+
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 2rem; }
+@media (max-width: 700px) { .grid-2 { grid-template-columns: 1fr; } }
+
+.panel {
+    background: rgba(255,255,255,.03);
+    border: 1px solid rgba(255,255,255,.08);
+    border-radius: 18px; overflow: hidden;
+}
+.panel-header {
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid rgba(255,255,255,.06);
+    display: flex; align-items: center; justify-content: space-between;
+}
+.panel-header h3 { font-size: .9rem; font-weight: 700; color: rgba(255,255,255,.8); }
+.panel-header a {
+    font-size: .75rem; color: #f87171; text-decoration: none; font-weight: 600;
+}
+.panel-header a:hover { text-decoration: underline; }
+
+.report-row, .user-row {
+    display: flex; align-items: center; gap: .75rem;
+    padding: .85rem 1.25rem;
+    border-bottom: 1px solid rgba(255,255,255,.04);
+    transition: background .2s;
+}
+.report-row:hover, .user-row:hover { background: rgba(255,255,255,.02); }
+.report-row:last-child, .user-row:last-child { border-bottom: none; }
+
+.report-reason {
+    font-size: .78rem; font-weight: 700; color: #f87171;
+    background: rgba(239,68,68,.1); border: 1px solid rgba(239,68,68,.2);
+    border-radius: 6px; padding: .15rem .5rem;
+}
+.report-meta { font-size: .75rem; color: rgba(255,255,255,.35); margin-top: .2rem; }
+
+.user-av {
+    width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0;
+    background: linear-gradient(135deg, #8b5cf6, #6366f1);
+    display: flex; align-items: center; justify-content: center;
+    font-size: .9rem; overflow: hidden;
+}
+.user-av img { width: 100%; height: 100%; object-fit: cover; }
+.user-name { font-size: .85rem; font-weight: 700; color: rgba(255,255,255,.8); }
+.user-meta { font-size: .72rem; color: rgba(255,255,255,.35); margin-top: .15rem; }
+
+.badge-banned {
+    font-size: .65rem; background: rgba(239,68,68,.15);
+    color: #f87171; border: 1px solid rgba(239,68,68,.3);
+    border-radius: 6px; padding: .1rem .45rem; font-weight: 700;
+}
+.badge-admin {
+    font-size: .65rem; background: rgba(251,146,60,.15);
+    color: #fb923c; border: 1px solid rgba(251,146,60,.3);
+    border-radius: 6px; padding: .1rem .45rem; font-weight: 700;
+}
+.badge-verified {
+    font-size: .65rem; background: rgba(52,211,153,.1);
+    color: #34d399; border: 1px solid rgba(52,211,153,.2);
+    border-radius: 6px; padding: .1rem .45rem; font-weight: 700;
+}
+
+.empty-panel {
+    text-align: center; padding: 2rem;
+    color: rgba(255,255,255,.3); font-size: .82rem;
+}
+</style>
+
+<div class="admin-wrap">
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for cat, msg in messages %}
+    <div style="background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.25);
+                border-radius:12px;padding:.75rem 1rem;margin-bottom:1rem;
+                color:#6ee7b7;font-size:.85rem;">{{ msg }}</div>
+    {% endfor %}
+  {% endwith %}
+
+  <div class="admin-header">
+    <div>
+      <h1>🛡️ Admin Dashboard</h1>
+      <p>Welcome back, @{{ current_user.username }} — here's what's happening on LYNK.</p>
+    </div>
+    <nav class="admin-nav">
+      <a href="{{ url_for('main.admin_dashboard') }}" class="active">📊 Overview</a>
+      <a href="{{ url_for('main.admin_users') }}">👥 Users</a>
+      <a href="{{ url_for('main.admin_reports') }}">🚩 Reports</a>
+      <a href="{{ url_for('main.admin_posts') }}">📝 Posts</a>
+      <a href="{{ url_for('main.home') }}">← Back to LYNK</a>
+    </nav>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats-grid">
+    <div class="stat-card">
+      <span class="icon">👥</span>
+      <span class="val">{{ total_users }}</span>
+      <span class="lbl">Total Users</span>
+      <span class="sub">+{{ new_users_week }} this week</span>
+    </div>
+    <div class="stat-card">
+      <span class="icon">📝</span>
+      <span class="val">{{ total_posts }}</span>
+      <span class="lbl">Total Posts</span>
+      <span class="sub">+{{ new_posts_week }} this week</span>
+    </div>
+    <div class="stat-card">
+      <span class="icon">🚩</span>
+      <span class="val">{{ total_reports }}</span>
+      <span class="lbl">Pending Reports</span>
+      <span class="sub">Needs review</span>
+    </div>
+    <div class="stat-card">
+      <span class="icon">🤖</span>
+      <span class="val">{{ total_agents }}</span>
+      <span class="lbl">AI Agents</span>
+      <span class="sub">Active bots</span>
+    </div>
+    <div class="stat-card">
+      <span class="icon">🚫</span>
+      <span class="val">{{ banned_users }}</span>
+      <span class="lbl">Banned Users</span>
+      <span class="sub">Currently banned</span>
+    </div>
+  </div>
+
+  <div class="grid-2">
+
+    <!-- Recent Reports -->
+    <div class="panel">
+      <div class="panel-header">
+        <h3>🚩 Recent Reports</h3>
+        <a href="{{ url_for('main.admin_reports') }}">View all →</a>
+      </div>
+      {% if recent_reports %}
+        {% for report in recent_reports %}
+        <div class="report-row">
+          <div style="flex:1;min-width:0;">
+            <div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;">
+              <span class="report-reason">{{ report.reason }}</span>
+              {% if report.post_id %}<span style="font-size:.72rem;color:rgba(255,255,255,.3);">Post</span>
+              {% else %}<span style="font-size:.72rem;color:rgba(255,255,255,.3);">User</span>{% endif %}
+            </div>
+            <div class="report-meta">
+              By @{{ report.reporter.username }}
+              {% if report.reported_user %} → @{{ report.reported_user.username }}{% endif %}
+              · {{ report.created_at.strftime('%b %d') }}
+            </div>
+          </div>
+          <a href="{{ url_for('main.admin_reports') }}"
+             style="font-size:.75rem;color:#f87171;text-decoration:none;font-weight:600;
+                    padding:.3rem .7rem;border:1px solid rgba(239,68,68,.2);
+                    border-radius:8px;white-space:nowrap;">
+            Review
+          </a>
+        </div>
+        {% endfor %}
+      {% else %}
+        <div class="empty-panel">✅ No pending reports</div>
+      {% endif %}
+    </div>
+
+    <!-- Recent Users -->
+    <div class="panel">
+      <div class="panel-header">
+        <h3>👥 Recent Users</h3>
+        <a href="{{ url_for('main.admin_users') }}">View all →</a>
+      </div>
+      {% if recent_users %}
+        {% for user in recent_users %}
+        <div class="user-row">
+          <div class="user-av">
+            {% if user.profile_pic and user.profile_pic != 'default.jpg' %}
+            <img src="{{ url_for('static', filename='uploads/' + user.profile_pic) }}">
+            {% else %}{{ user.username[0].upper() }}{% endif %}
+          </div>
+          <div style="flex:1;min-width:0;">
+            <div style="display:flex;align-items:center;gap:.4rem;flex-wrap:wrap;">
+              <span class="user-name">@{{ user.username }}</span>
+              {% if user.is_admin %}<span class="badge-admin">Admin</span>{% endif %}
+              {% if user.is_banned %}<span class="badge-banned">Banned</span>{% endif %}
+              {% if user.is_verified %}<span class="badge-verified">Verified</span>{% endif %}
+            </div>
+            <div class="user-meta">
+              Joined {{ user.created_at.strftime('%b %d, %Y') }}
+              · {{ user.followers.filter_by(status='accepted').count() }} followers
+            </div>
+          </div>
+          <a href="{{ url_for('main.profile', username=user.username) }}"
+             style="font-size:.75rem;color:rgba(255,255,255,.4);text-decoration:none;
+                    font-weight:600;padding:.3rem .7rem;
+                    border:1px solid rgba(255,255,255,.1);border-radius:8px;">
+            View
+          </a>
+        </div>
+        {% endfor %}
+      {% else %}
+        <div class="empty-panel">No users yet</div>
+      {% endif %}
+    </div>
+
+  </div>
+
+  <!-- Quick Actions -->
+  <div style="background:rgba(239,68,68,.05);border:1px solid rgba(239,68,68,.15);
+              border-radius:16px;padding:1.25rem 1.5rem;">
+    <div style="font-size:.82rem;font-weight:700;color:rgba(255,255,255,.5);
+                text-transform:uppercase;letter-spacing:.5px;margin-bottom:.75rem;">
+      Quick Actions
+    </div>
+    <div style="display:flex;gap:.75rem;flex-wrap:wrap;">
+      <a href="{{ url_for('main.admin_users') }}"
+         style="padding:.55rem 1.1rem;background:rgba(139,92,246,.15);
+                border:1px solid rgba(139,92,246,.3);border-radius:10px;
+                color:#a78bfa;text-decoration:none;font-size:.82rem;font-weight:600;">
+        👥 Manage Users
+      </a>
+      <a href="{{ url_for('main.admin_reports') }}"
+         style="padding:.55rem 1.1rem;background:rgba(239,68,68,.1);
+                border:1px solid rgba(239,68,68,.25);border-radius:10px;
+                color:#f87171;text-decoration:none;font-size:.82rem;font-weight:600;">
+        🚩 Review Reports ({{ total_reports }})
+      </a>
+      <a href="{{ url_for('main.admin_posts') }}"
+         style="padding:.55rem 1.1rem;background:rgba(251,146,60,.1);
+                border:1px solid rgba(251,146,60,.25);border-radius:10px;
+                color:#fb923c;text-decoration:none;font-size:.82rem;font-weight:600;">
+        📝 Moderate Posts
+      </a>
+      <a href="{{ url_for('main.agent_marketplace') }}"
+         style="padding:.55rem 1.1rem;background:rgba(255,255,255,.05);
+                border:1px solid rgba(255,255,255,.1);border-radius:10px;
+                color:rgba(255,255,255,.5);text-decoration:none;font-size:.82rem;font-weight:600;">
+        🤖 View Agents
+      </a>
+      <form method="POST" action="{{ url_for('main.admin_send_digest') }}" style="display:inline;">
+    <button type="submit"
+            style="padding:.55rem 1.1rem;background:rgba(125,184,232,.1);
+                   border:1px solid rgba(125,184,232,.25);border-radius:10px;
+                   color:#7db8e8;font-size:.82rem;font-weight:600;
+                   cursor:pointer;font-family:inherit;">
+        📧 Send Digest Now
+    </button>
+</form>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

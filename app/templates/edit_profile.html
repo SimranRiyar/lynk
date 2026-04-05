@@ -1,0 +1,189 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="center-wrapper">
+  <div class="card auth-card" style="max-width:520px;">
+
+    <h2 style="font-family:'Playfair Display',serif;font-size:24px;font-weight:700;margin-bottom:6px;">✏️ Edit Profile</h2>
+    <p class="auth-subtitle">Update your profile information</p>
+
+    <form method="POST" enctype="multipart/form-data">
+
+      <div style="text-align:center;margin-bottom:24px;">
+        {% if current_user.profile_pic and current_user.profile_pic != 'default.jpg' %}
+          <img src="{{ url_for('static', filename='uploads/' + current_user.profile_pic) }}" id="avatarPreview"
+               style="width:90px;height:90px;border-radius:50%;object-fit:cover;border:3px solid var(--pink);box-shadow:0 0 0 4px var(--pink-soft);">
+        {% else %}
+          <img src="{{ url_for('static', filename='img/default_avatar.svg') }}" id="avatarPreview"
+               style="width:90px;height:90px;border-radius:50%;object-fit:cover;border:3px solid var(--pink);box-shadow:0 0 0 4px var(--pink-soft);">
+        {% endif %}
+      </div>
+
+      <div class="form-group">
+        <label>Profile Picture</label>
+        <label style="display:inline-flex;align-items:center;gap:10px;padding:10px 20px;
+                      border-radius:12px;background:var(--surface2);border:1.5px solid var(--border);
+                      cursor:pointer;font-size:14px;font-weight:700;color:var(--muted);transition:all 0.2s;"
+               onmouseover="this.style.borderColor='var(--purple)';this.style.color='var(--purple)';this.style.background='var(--purple-soft)'"
+               onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--muted)';this.style.background='var(--surface2)'">
+          📷 Choose Photo
+          <input type="file" name="profile_pic" accept="image/*" style="display:none;" onchange="previewAvatar(this)">
+        </label>
+        <span id="fileName" style="font-size:13px;color:var(--muted);font-weight:500;margin-left:10px;">No file chosen</span>
+      </div>
+
+      <div class="form-group">
+        <label>Display Name</label>
+        <input type="text" name="display_name" placeholder="Your display name (optional)"
+               value="{{ current_user.display_name or '' }}" maxlength="100">
+      </div>
+
+      <div class="form-group">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:7px;">
+          <label style="margin-bottom:0;">Bio</label>
+          <button type="button" onclick="openBioWriter()"
+                  style="display:inline-flex;align-items:center;gap:6px;padding:5px 12px;
+                         border-radius:8px;background:linear-gradient(135deg,var(--purple),var(--pink));
+                         color:white;border:none;font-size:12px;font-weight:700;cursor:pointer;
+                         font-family:'Nunito',sans-serif;box-shadow:0 2px 8px var(--shadow);">
+            🤖 AI Bio Writer
+          </button>
+        </div>
+        <textarea name="bio" id="bioTextarea" rows="4"
+                  placeholder="Tell people a bit about yourself…">{{ current_user.bio or '' }}</textarea>
+      </div>
+
+      <div class="form-group">
+        <label>Website</label>
+        <input type="text" name="website" placeholder="yourwebsite.com" value="{{ current_user.website or '' }}">
+      </div>
+
+      <div style="display:flex;gap:10px;margin-top:8px;">
+        <button type="submit" class="btn w-full">Save Changes</button>
+        <a href="{{ url_for('main.profile', username=current_user.username) }}" class="btn btn-ghost w-full">Cancel</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- AI Bio Writer Modal -->
+<div id="bioModal" style="display:none;position:fixed;inset:0;z-index:999;
+                           background:rgba(0,0,0,0.5);backdrop-filter:blur(4px);
+                           align-items:center;justify-content:center;padding:20px;">
+  <div style="background:var(--surface);border:1.5px solid var(--border);border-radius:20px;
+              padding:28px;width:100%;max-width:480px;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
+
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div style="width:38px;height:38px;border-radius:10px;background:linear-gradient(135deg,var(--purple),var(--pink));
+                    display:flex;align-items:center;justify-content:center;font-size:18px;">🤖</div>
+        <div>
+          <div style="font-weight:800;font-size:16px;">AI Bio Writer</div>
+          <div style="font-size:12px;color:var(--muted);font-weight:500;">3 bio suggestions in seconds</div>
+        </div>
+      </div>
+      <button onclick="closeBioWriter()"
+              style="width:32px;height:32px;border-radius:8px;border:1.5px solid var(--border);
+                     background:var(--surface2);cursor:pointer;font-size:16px;">✕</button>
+    </div>
+
+    <div style="margin-bottom:16px;">
+      <label style="display:block;font-size:12px;font-weight:700;color:var(--muted);
+                    text-transform:uppercase;letter-spacing:0.7px;margin-bottom:7px;">
+        Your Interests (optional)
+      </label>
+      <input type="text" id="bioInterests" placeholder="e.g. photography, travel, coding…"
+             style="width:100%;padding:11px 14px;border:1.5px solid var(--border);border-radius:12px;
+                    background:var(--surface2);color:var(--text);font-family:'Nunito',sans-serif;font-size:14px;">
+    </div>
+
+    <button onclick="generateBios()" id="generateBioBtn"
+            style="width:100%;padding:12px;border-radius:12px;border:none;margin-bottom:16px;
+                   background:linear-gradient(135deg,var(--purple),var(--pink));color:white;
+                   font-size:15px;font-weight:700;cursor:pointer;font-family:'Nunito',sans-serif;">
+      ✨ Generate Bios
+    </button>
+
+    <div id="bioLoading" style="display:none;text-align:center;padding:20px;color:var(--muted);">
+      <div style="font-size:14px;font-weight:600;">Crafting your bios…</div>
+    </div>
+
+    <div id="bioResults" style="display:flex;flex-direction:column;gap:10px;"></div>
+  </div>
+</div>
+
+<script>
+function previewAvatar(input) {
+    if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        reader.onload = e => { document.getElementById('avatarPreview').src = e.target.result; };
+        reader.readAsDataURL(input.files[0]);
+        document.getElementById('fileName').textContent = input.files[0].name;
+    }
+}
+
+function openBioWriter() {
+    document.getElementById('bioModal').style.display = 'flex';
+    document.getElementById('bioResults').innerHTML = '';
+    document.getElementById('bioLoading').style.display = 'none';
+}
+
+function closeBioWriter() {
+    document.getElementById('bioModal').style.display = 'none';
+}
+
+document.getElementById('bioModal').addEventListener('click', function(e) {
+    if (e.target === this) closeBioWriter();
+});
+
+async function generateBios() {
+    const interests = document.getElementById('bioInterests').value.trim();
+    const btn = document.getElementById('generateBioBtn');
+    const loading = document.getElementById('bioLoading');
+    const results = document.getElementById('bioResults');
+    btn.disabled = true; btn.textContent = 'Generating…';
+    loading.style.display = 'block';
+    results.innerHTML = '';
+    try {
+        const res = await fetch('/ai/bio', {
+            method:'POST', headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({interests})
+        });
+        const data = await res.json();
+        loading.style.display = 'none';
+        if (data.bios && data.bios.length > 0) {
+            data.bios.forEach(bio => {
+                const card = document.createElement('div');
+                card.style.cssText = 'background:var(--surface2);border:1.5px solid var(--border);border-radius:12px;padding:14px 16px;transition:all 0.2s;';
+                card.innerHTML = `<div style="font-size:14px;font-weight:500;line-height:1.5;color:var(--text);margin-bottom:10px;">${bio}</div>
+                    <div style="display:flex;align-items:center;justify-content:space-between;">
+                        <span style="font-size:11px;color:var(--muted);">${bio.length}/150 chars</span>
+                        <button onclick="useBio(${JSON.stringify(bio)})"
+                                style="padding:6px 14px;border-radius:8px;border:none;
+                                       background:linear-gradient(135deg,var(--purple),var(--pink));
+                                       color:white;font-size:12px;font-weight:700;cursor:pointer;
+                                       font-family:'Nunito',sans-serif;">Use This ✓</button>
+                    </div>`;
+                results.appendChild(card);
+            });
+        } else {
+            results.innerHTML = '<p style="color:var(--muted);font-size:14px;text-align:center;">⚠️ Could not generate. Try again.</p>';
+        }
+    } catch(err) {
+        loading.style.display = 'none';
+        results.innerHTML = '<p style="color:var(--muted);font-size:14px;text-align:center;">⚠️ Network error.</p>';
+    }
+    btn.disabled = false; btn.textContent = '✨ Generate Bios';
+}
+
+function useBio(bio) {
+    document.getElementById('bioTextarea').value = bio;
+    closeBioWriter();
+    const ta = document.getElementById('bioTextarea');
+    ta.style.borderColor = 'var(--purple)';
+    ta.style.boxShadow = '0 0 0 4px var(--purple-soft)';
+    setTimeout(() => { ta.style.borderColor = ''; ta.style.boxShadow = ''; }, 1500);
+}
+</script>
+
+{% endblock %}

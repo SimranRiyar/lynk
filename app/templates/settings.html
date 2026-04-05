@@ -1,0 +1,642 @@
+{% extends "base.html" %}
+{% block content %}
+
+<style>
+.settings-wrap { max-width: 720px; margin: 0 auto; }
+
+.settings-section {
+    background: var(--surface); border: 1.5px solid var(--border);
+    border-radius: 20px; padding: 28px 32px;
+    box-shadow: 0 2px 14px var(--shadow); margin-bottom: 24px;
+}
+.settings-section-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 18px; font-weight: 700; color: var(--text);
+    margin-bottom: 20px; padding-bottom: 14px;
+    border-bottom: 1.5px solid var(--border);
+    display: flex; align-items: center; gap: 10px;
+}
+.settings-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 0; border-bottom: 1px solid var(--border);
+}
+.settings-row:last-child { border-bottom: none; }
+.settings-row-left { display: flex; flex-direction: column; gap: 3px; }
+.settings-row-title { font-size: 15px; font-weight: 700; color: var(--text); }
+.settings-row-desc { font-size: 13px; color: var(--muted); font-weight: 500; }
+
+.toggle-switch {
+    width: 48px; height: 26px; border-radius: 99px;
+    cursor: pointer; position: relative; transition: background 0.3s;
+    flex-shrink: 0;
+}
+.toggle-thumb {
+    position: absolute; top: 3px; left: 3px;
+    width: 20px; height: 20px; border-radius: 50%;
+    background: white; box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+    transition: left 0.3s;
+}
+
+/* THEME GRID */
+.theme-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+    gap: 12px; margin-top: 16px;
+}
+.theme-card {
+    border-radius: 14px; overflow: hidden; cursor: pointer;
+    border: 2.5px solid transparent;
+    transition: all 0.2s; position: relative;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+}
+.theme-card:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.12); }
+.theme-card.active { border-color: var(--purple); }
+.theme-card.active::after {
+    content: '✓'; position: absolute; top: 6px; right: 6px;
+    width: 20px; height: 20px; border-radius: 50%;
+    background: var(--purple); color: white;
+    font-size: 11px; font-weight: 900;
+    display: flex; align-items: center; justify-content: center;
+}
+.theme-preview { height: 60px; position: relative; overflow: hidden; }
+.theme-preview-bar { position: absolute; bottom: 0; left: 0; right: 0; height: 18px; opacity: 0.7; }
+.theme-preview-dot { position: absolute; top: 8px; left: 10px; width: 24px; height: 24px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.4); }
+.theme-preview-lines { position: absolute; top: 10px; left: 42px; right: 10px; }
+.theme-preview-line { height: 5px; border-radius: 3px; margin-bottom: 4px; opacity: 0.6; }
+.theme-label { padding: 7px 8px; font-size: 11px; font-weight: 700; text-align: center; }
+
+/* LOGIN HISTORY */
+.login-entry {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 0; border-bottom: 1px solid var(--border);
+}
+.login-entry:last-child { border-bottom: none; }
+.login-icon {
+    width: 38px; height: 38px; border-radius: 10px;
+    background: var(--surface2); border: 1.5px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px; flex-shrink: 0;
+}
+.login-info { flex: 1; }
+.login-device { font-size: 14px; font-weight: 700; color: var(--text); }
+.login-meta { font-size: 12px; color: var(--muted); font-weight: 500; margin-top: 2px; }
+
+/* PASSWORD STRENGTH */
+.strength-bar {
+    height: 4px; border-radius: 99px; margin-top: 8px;
+    background: var(--border); overflow: hidden; transition: all 0.3s;
+}
+.strength-fill {
+    height: 100%; border-radius: 99px; transition: width 0.3s, background 0.3s;
+    width: 0%;
+}
+.strength-label {
+    font-size: 12px; font-weight: 700; margin-top: 4px;
+}
+</style>
+
+<div class="settings-wrap">
+
+    <div style="margin-bottom:28px;">
+        <h1 style="font-family:'Playfair Display',serif;font-size:28px;font-weight:700;margin-bottom:6px;">
+            ⚙️ Settings
+        </h1>
+        <p style="color:var(--muted);font-size:14px;font-weight:500;">
+            Customize your Lynk experience
+        </p>
+    </div>
+
+    <!-- APPEARANCE -->
+    <div class="settings-section">
+        <div class="settings-section-title">🎨 Appearance</div>
+
+        <div class="settings-row">
+            <div class="settings-row-left">
+                <div class="settings-row-title">Dark Mode</div>
+                <div class="settings-row-desc">Switch between light and dark</div>
+            </div>
+            <div class="toggle-switch" id="darkToggle" onclick="toggleDark()"
+                 style="background:var(--border);">
+                <div class="toggle-thumb" id="darkThumb"></div>
+            </div>
+        </div>
+
+        <div style="margin-top:20px;">
+            <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:4px;">
+                Choose Your Theme
+            </div>
+            <div class="theme-grid" id="themeGrid">
+                <div class="theme-card" id="theme-sakura" onclick="selectTheme('sakura')">
+                    <div class="theme-preview" style="background:#FDF6FB;">
+                        <div class="theme-preview-dot" style="background:#E991C0;"></div>
+                        <div class="theme-preview-lines">
+                            <div class="theme-preview-line" style="background:#9B6FD4;width:80%;"></div>
+                            <div class="theme-preview-line" style="background:#E991C0;width:55%;"></div>
+                        </div>
+                        <div class="theme-preview-bar" style="background:linear-gradient(135deg,#9B6FD4,#E991C0);"></div>
+                    </div>
+                    <div class="theme-label" style="background:#FDF6FB;color:#2D1F2E;">🌸 Sakura</div>
+                </div>
+                <div class="theme-card" id="theme-ocean" onclick="selectTheme('ocean')">
+                    <div class="theme-preview" style="background:#EAF4FB;">
+                        <div class="theme-preview-dot" style="background:#00BCD4;"></div>
+                        <div class="theme-preview-lines">
+                            <div class="theme-preview-line" style="background:#0077B6;width:80%;"></div>
+                            <div class="theme-preview-line" style="background:#48CAE4;width:55%;"></div>
+                        </div>
+                        <div class="theme-preview-bar" style="background:linear-gradient(135deg,#0077B6,#00BCD4);"></div>
+                    </div>
+                    <div class="theme-label" style="background:#EAF4FB;color:#0D2A3A;">🌊 Ocean</div>
+                </div>
+                <div class="theme-card" id="theme-ember" onclick="selectTheme('ember')">
+                    <div class="theme-preview" style="background:#FFF8F0;">
+                        <div class="theme-preview-dot" style="background:#FF6B35;"></div>
+                        <div class="theme-preview-lines">
+                            <div class="theme-preview-line" style="background:#E84855;width:80%;"></div>
+                            <div class="theme-preview-line" style="background:#FFB347;width:55%;"></div>
+                        </div>
+                        <div class="theme-preview-bar" style="background:linear-gradient(135deg,#E84855,#FF6B35);"></div>
+                    </div>
+                    <div class="theme-label" style="background:#FFF8F0;color:#2A1000;">🔥 Ember</div>
+                </div>
+                <div class="theme-card" id="theme-forest" onclick="selectTheme('forest')">
+                    <div class="theme-preview" style="background:#F0F7F0;">
+                        <div class="theme-preview-dot" style="background:#7CB97C;"></div>
+                        <div class="theme-preview-lines">
+                            <div class="theme-preview-line" style="background:#2D6A2D;width:80%;"></div>
+                            <div class="theme-preview-line" style="background:#A8D5A2;width:55%;"></div>
+                        </div>
+                        <div class="theme-preview-bar" style="background:linear-gradient(135deg,#2D6A2D,#7CB97C);"></div>
+                    </div>
+                    <div class="theme-label" style="background:#F0F7F0;color:#0A1F0A;">🌿 Forest</div>
+                </div>
+                <div class="theme-card" id="theme-midnight" onclick="selectTheme('midnight')">
+                    <div class="theme-preview" style="background:#000008;">
+                        <div class="theme-preview-dot" style="background:#BF5FFF;"></div>
+                        <div class="theme-preview-lines">
+                            <div class="theme-preview-line" style="background:#7B2FFF;width:80%;"></div>
+                            <div class="theme-preview-line" style="background:#00F5FF;width:55%;"></div>
+                        </div>
+                        <div class="theme-preview-bar" style="background:linear-gradient(135deg,#7B2FFF,#BF5FFF);"></div>
+                    </div>
+                    <div class="theme-label" style="background:#080010;color:#F0E8FF;">🌙 Midnight</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ACCOUNT PRIVACY -->
+    <div class="settings-section">
+        <div class="settings-section-title">🔒 Privacy</div>
+
+        <div class="settings-row">
+            <div class="settings-row-left">
+                <div class="settings-row-title">Private Account</div>
+                <div class="settings-row-desc">Only approved followers can see your posts</div>
+            </div>
+            <form method="POST" action="{{ url_for('main.toggle_privacy') }}">
+                <button type="submit" class="toggle-switch"
+                        style="background:{{ 'var(--purple)' if current_user.is_private else 'var(--border)' }};border:none;cursor:pointer;">
+                    <div class="toggle-thumb"
+                         style="left:{{ '25px' if current_user.is_private else '3px' }};"></div>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- SECURITY -->
+    <div class="settings-section">
+        <div class="settings-section-title">🔐 Security</div>
+
+        <!-- Change Password -->
+        <div style="margin-bottom:24px;padding-bottom:24px;border-bottom:1px solid var(--border);">
+            <div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:4px;">Change Password</div>
+            <div style="font-size:13px;color:var(--muted);font-weight:500;margin-bottom:16px;">
+                Use a strong password with letters, numbers and symbols
+            </div>
+            <form method="POST" action="{{ url_for('main.change_password') }}">
+                <div class="form-group" style="margin-bottom:12px;">
+                    <label>Current Password</label>
+                    <input type="password" name="current_password" placeholder="Enter current password">
+                </div>
+                <div class="form-group" style="margin-bottom:12px;">
+                    <label>New Password</label>
+                    <input type="password" name="new_password" id="newPwInput"
+                           placeholder="Min. 8 characters"
+                           oninput="checkStrength(this.value)">
+                    <div class="strength-bar">
+                        <div class="strength-fill" id="strengthFill"></div>
+                    </div>
+                    <div class="strength-label" id="strengthLabel" style="color:var(--muted);"></div>
+                </div>
+                <div class="form-group" style="margin-bottom:16px;">
+                    <label>Confirm New Password</label>
+                    <input type="password" name="confirm_password" placeholder="Repeat new password">
+                </div>
+                <button type="submit" class="btn btn-sm">Update Password 🔑</button>
+            </form>
+        </div>
+
+        <!-- 2FA -->
+        <div class="settings-row">
+            <div class="settings-row-left">
+                <div class="settings-row-title">Two-Factor Authentication</div>
+                <div class="settings-row-desc">
+                    {% if current_user.two_factor_enabled %}
+                    ✅ Enabled — a code is sent to your email on login
+                    {% else %}
+                    Adds an extra layer of security to your account
+                    {% endif %}
+                </div>
+            </div>
+            <form method="POST" action="{{ url_for('main.toggle_2fa') }}">
+                <button type="submit"
+                        class="btn btn-sm {% if current_user.two_factor_enabled %}btn-ghost{% endif %}">
+                    {{ 'Disable' if current_user.two_factor_enabled else 'Enable' }}
+                </button>
+            </form>
+        </div>
+
+        <!-- Active Sessions -->
+        <div class="settings-row">
+            <div class="settings-row-left">
+                <div class="settings-row-title">Log Out All Devices</div>
+                <div class="settings-row-desc">Ends all other active sessions immediately</div>
+            </div>
+            <form method="POST" action="{{ url_for('main.logout_all_sessions') }}">
+                <button type="submit" class="btn btn-ghost btn-sm"
+                        onclick="return confirm('Log out all other devices?')">
+                    Log Out All
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- EMAIL CHANGE -->
+    <div class="settings-section">
+        <div class="settings-section-title">📧 Email</div>
+        <div style="font-size:13px;color:var(--muted);font-weight:500;margin-bottom:16px;">
+            Current email: <strong style="color:var(--text);">{{ current_user.email }}</strong>
+        </div>
+        <form method="POST" action="{{ url_for('main.change_email') }}">
+            <div class="form-group" style="margin-bottom:12px;">
+                <label>New Email Address</label>
+                <input type="email" name="new_email" placeholder="newemail@example.com">
+            </div>
+            <div class="form-group" style="margin-bottom:16px;">
+                <label>Confirm Password</label>
+                <input type="password" name="email_password" placeholder="Your current password">
+            </div>
+            <button type="submit" class="btn btn-sm">Send Confirmation →</button>
+        </form>
+    </div>
+
+    <!-- LOGIN HISTORY -->
+    <div class="settings-section">
+        <div class="settings-section-title">📋 Login History</div>
+        {% if login_logs %}
+            {% for log in login_logs %}
+            <div class="login-entry">
+                <div class="login-icon">
+                    {% if "Mobile" in (log.user_agent or "") or "Android" in (log.user_agent or "") %}📱
+                    {% else %}💻{% endif %}
+                </div>
+                <div class="login-info">
+                    <div class="login-device">{{ log.device_info() }}</div>
+                    <div class="login-meta">
+                        {{ log.timestamp.strftime('%B %d, %Y · %H:%M UTC') }} · IP: {{ log.ip_address or 'Unknown' }}
+                    </div>
+                </div>
+                {% if loop.first %}
+                <span style="background:var(--purple-soft);color:var(--purple);
+                             font-size:11px;font-weight:800;padding:3px 10px;
+                             border-radius:99px;border:1px solid var(--purple);">
+                    Current
+                </span>
+                {% endif %}
+            </div>
+            {% endfor %}
+        {% else %}
+            <div style="text-align:center;padding:20px;color:var(--muted);font-size:14px;font-weight:500;">
+                No login history yet.
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- ACCOUNT -->
+    <div class="settings-section">
+        <div class="settings-section-title">👤 Account</div>
+
+        <div class="settings-row">
+            <div class="settings-row-left">
+                <div class="settings-row-title">Edit Profile</div>
+                <div class="settings-row-desc">Update your bio, display name and picture</div>
+            </div>
+            <a href="{{ url_for('main.edit_profile') }}" class="btn btn-ghost btn-sm">Edit →</a>
+        </div>
+
+        <div class="settings-row">
+            <div class="settings-row-left">
+                <div class="settings-row-title">Memory Capsules</div>
+                <div class="settings-row-desc">View and manage your sealed capsules</div>
+            </div>
+            <a href="{{ url_for('main.my_capsules') }}" class="btn btn-ghost btn-sm">View →</a>
+        </div>
+
+        <div class="settings-row">
+            <div class="settings-row-left">
+                <div class="settings-row-title">Log Out</div>
+                <div class="settings-row-desc">Sign out of your account</div>
+            </div>
+            <a href="{{ url_for('main.logout') }}" class="btn btn-ghost btn-sm">Log Out</a>
+        </div>
+    </div>
+
+    <!-- ABOUT -->
+    <div class="settings-section">
+        <div class="settings-section-title">ℹ️ About</div>
+        <div class="settings-row">
+            <div class="settings-row-left">
+                <div class="settings-row-title">Version</div>
+                <div class="settings-row-desc">Lynk v1.0 — Built with Flask + AI</div>
+            </div>
+        </div>
+        <div class="settings-row">
+            <div class="settings-row-left">
+                <div class="settings-row-title">Logged in as</div>
+                <div class="settings-row-desc">{{ current_user.username }} · {{ current_user.email }}</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- COMMENT PERMISSIONS -->
+<div class="settings-section">
+    <div class="settings-section-title">💬 Comment Permissions</div>
+    <div style="color:var(--muted);font-size:13px;font-weight:500;margin-bottom:20px;">
+        Control who can comment on your posts.
+        Current: <strong style="color:var(--text);">{{ current_user.comment_permission | capitalize }}</strong>
+    </div>
+    <form method="POST" action="{{ url_for('main.set_comment_permission') }}">
+        <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:16px;">
+            {% for value, label, desc in [
+                ('everyone','🌍 Everyone','Any Lynk user can comment'),
+                ('followers','👥 Followers Only','Only your followers can comment'),
+                ('nobody','🔇 Nobody','Disable all comments')
+            ] %}
+            <label style="display:flex;align-items:flex-start;gap:12px;padding:12px 14px;
+                          border:1.5px solid {{ 'var(--purple)' if current_user.comment_permission == value else 'var(--border)' }};
+                          border-radius:12px;cursor:pointer;
+                          background:{{ 'var(--purple-soft)' if current_user.comment_permission == value else 'var(--surface2)' }};">
+                <input type="radio" name="comment_permission" value="{{ value }}"
+                       {{ 'checked' if current_user.comment_permission == value }}
+                       style="margin-top:3px;accent-color:var(--purple);">
+                <div>
+                    <div style="font-weight:700;font-size:14px;color:var(--text);">{{ label }}</div>
+                    <div style="font-size:12px;color:var(--muted);font-weight:500;margin-top:2px;">{{ desc }}</div>
+                </div>
+            </label>
+            {% endfor %}
+        </div>
+        <button type="submit" class="btn btn-sm">Save Permission</button>
+    </form>
+</div>
+
+<!-- BLOCKED USERS -->
+<div class="settings-section">
+    <div class="settings-section-title">🚫 Blocked Users</div>
+    {% if blocked_users %}
+    <div style="color:var(--muted);font-size:13px;font-weight:500;margin-bottom:16px;">
+        {{ blocked_users | length }} blocked account{{ 's' if blocked_users | length != 1 }}.
+    </div>
+    {% for u in blocked_users %}{% if u %}
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border);">
+        <div style="display:flex;align-items:center;gap:12px;">
+            {% if u.profile_pic and u.profile_pic != 'default.jpg' %}
+                <img src="{{ url_for('static', filename='uploads/' + u.profile_pic) }}"
+                     style="width:40px;height:40px;border-radius:50%;object-fit:cover;border:2px solid var(--border);">
+            {% else %}
+                <img src="{{ url_for('static', filename='img/default_avatar.svg') }}"
+                     style="width:40px;height:40px;border-radius:50%;object-fit:cover;border:2px solid var(--border);">
+            {% endif %}
+            <div>
+                <div style="font-weight:700;font-size:14px;color:var(--text);">{{ u.username }}</div>
+                <div style="font-size:12px;color:var(--muted);font-weight:500;">Blocked user</div>
+            </div>
+        </div>
+        <form method="POST" action="{{ url_for('main.unblock_user', username=u.username) }}" style="margin:0;">
+            <button type="submit" class="btn btn-ghost btn-sm">Unblock</button>
+        </form>
+    </div>
+    {% endif %}{% endfor %}
+    {% else %}
+    <div style="text-align:center;padding:24px 0;color:var(--muted);font-size:13px;font-weight:500;">
+        You haven't blocked anyone. 🌸
+    </div>
+    {% endif %}
+</div>
+
+<!-- MUTED USERS -->
+<div class="settings-section">
+    <div class="settings-section-title">🔕 Muted Users</div>
+    {% if muted_users %}
+    <div style="color:var(--muted);font-size:13px;font-weight:500;margin-bottom:16px;">
+        {{ muted_users | length }} muted account{{ 's' if muted_users | length != 1 }}.
+        Muted users don't know they're muted.
+    </div>
+    {% for u in muted_users %}{% if u %}
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border);">
+        <div style="display:flex;align-items:center;gap:12px;">
+            {% if u.profile_pic and u.profile_pic != 'default.jpg' %}
+                <img src="{{ url_for('static', filename='uploads/' + u.profile_pic) }}"
+                     style="width:40px;height:40px;border-radius:50%;object-fit:cover;border:2px solid var(--border);">
+            {% else %}
+                <img src="{{ url_for('static', filename='img/default_avatar.svg') }}"
+                     style="width:40px;height:40px;border-radius:50%;object-fit:cover;border:2px solid var(--border);">
+            {% endif %}
+            <div>
+                <div style="font-weight:700;font-size:14px;color:var(--text);">{{ u.username }}</div>
+                <div style="font-size:12px;color:var(--muted);font-weight:500;">Muted · Posts hidden from feed</div>
+            </div>
+        </div>
+        <form method="POST" action="{{ url_for('main.unmute_user', username=u.username) }}" style="margin:0;">
+            <button type="submit" class="btn btn-ghost btn-sm">Unmute</button>
+        </form>
+    </div>
+    {% endif %}{% endfor %}
+    {% else %}
+    <div style="text-align:center;padding:24px 0;color:var(--muted);font-size:13px;font-weight:500;">
+        You haven't muted anyone. 🎵
+    </div>
+    {% endif %}
+</div>
+
+<!-- TRUST SCORE -->
+<div class="settings-section">
+    <div class="settings-section-title">🛡️ Trust Score</div>
+    {% set score = current_user.trust_score() %}
+    {% set trust_emoji, trust_label, trust_color = current_user.trust_label() %}
+    <div style="display:flex;align-items:center;gap:20px;margin-bottom:20px;">
+        <div style="width:80px;height:80px;border-radius:50%;flex-shrink:0;
+                    background:conic-gradient({{ trust_color }} {{ score }}%, var(--border) 0);
+                    display:flex;align-items:center;justify-content:center;
+                    box-shadow:0 0 0 6px {{ trust_color }}22;">
+            <div style="width:60px;height:60px;border-radius:50%;background:var(--surface);
+                        display:flex;flex-direction:column;align-items:center;justify-content:center;">
+                <div style="font-size:20px;font-weight:900;color:{{ trust_color }};">{{ score }}</div>
+                <div style="font-size:9px;color:var(--muted);font-weight:700;">/ 100</div>
+            </div>
+        </div>
+        <div>
+            <div style="font-size:18px;font-weight:800;color:{{ trust_color }};margin-bottom:4px;">
+                {{ trust_emoji }} {{ trust_label }}
+            </div>
+            <div style="font-size:13px;color:var(--muted);font-weight:500;line-height:1.7;">
+                Your trust score reflects your reputation on Lynk.
+            </div>
+        </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:8px;">
+        <div style="display:flex;justify-content:space-between;padding:8px 12px;background:var(--surface2);border-radius:10px;font-size:13px;">
+            <span style="color:var(--muted);font-weight:600;">✅ Email verified</span>
+            <span style="font-weight:800;color:{{ '#5cc97a' if current_user.is_verified else '#e84855' }};">{{ '+20' if current_user.is_verified else '+0' }}</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding:8px 12px;background:var(--surface2);border-radius:10px;font-size:13px;">
+            <span style="color:var(--muted);font-weight:600;">👥 Followers</span>
+            <span style="font-weight:800;color:var(--purple);">+{{ [current_user.followers.filter_by(status='accepted').count() * 2, 20] | min }}</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding:8px 12px;background:var(--surface2);border-radius:10px;font-size:13px;">
+            <span style="color:var(--muted);font-weight:600;">📝 Posts</span>
+            <span style="font-weight:800;color:var(--purple);">+{{ [current_user.posts | length * 2, 15] | min }}</span>
+        </div>
+    </div>
+</div>
+
+<!-- PAUSE ACCOUNT -->
+<div class="settings-section" style="border-color:rgba(125,184,232,0.4);">
+    <div class="settings-section-title" style="color:var(--blue);">⏸️ Pause Account</div>
+    <div style="font-size:14px;color:var(--muted);font-weight:500;margin-bottom:20px;line-height:1.7;">
+        Temporarily hide your profile. All your data is preserved — just log back in to reactivate.
+    </div>
+    <div style="background:var(--blue-soft);border:1.5px solid var(--blue);
+                border-radius:12px;padding:14px 16px;margin-bottom:20px;">
+        <div style="font-size:13px;color:var(--text);font-weight:600;line-height:1.6;">
+            ℹ️ Pausing is different from deleting — your posts, followers and data stay intact.
+        </div>
+    </div>
+    {% if current_user.is_paused %}
+    <form method="POST" action="{{ url_for('main.unpause_account') }}">
+        <button type="submit" class="btn" style="background:linear-gradient(135deg,var(--blue),#a8d8f0);color:#1a3a52;">
+            ▶️ Reactivate My Account
+        </button>
+    </form>
+    {% else %}
+    <form method="POST" action="{{ url_for('main.pause_account') }}"
+          onsubmit="return confirm('Pause your account? You\'ll be logged out and your profile will be hidden.')">
+        <button type="submit" class="btn btn-ghost">⏸️ Pause My Account</button>
+    </form>
+    {% endif %}
+</div>
+
+    <!-- DANGER ZONE -->
+    <div class="settings-section" style="border-color:rgba(217,95,122,0.3);">
+        <div class="settings-section-title" style="color:#d95f7a;">⚠️ Danger Zone</div>
+        <div style="font-size:14px;color:var(--muted);font-weight:500;margin-bottom:20px;line-height:1.6;">
+            Permanently delete your account and all your data. This cannot be undone.
+        </div>
+        <form method="POST" action="{{ url_for('main.delete_account') }}"
+              onsubmit="return confirm('Are you absolutely sure? This will permanently delete your account and ALL your data. This cannot be undone.')">
+            <div class="form-group" style="margin-bottom:12px;">
+                <label>Enter your password to confirm</label>
+                <input type="password" name="delete_password"
+                       placeholder="Your password">
+            </div>
+            <button type="submit" class="btn btn-danger">
+                🗑️ Delete My Account Forever
+            </button>
+        </form>
+    </div>
+
+</div>
+
+<script>
+const THEMES = {
+    sakura:   { light: 'light',    dark: 'dark' },
+    ocean:    { light: 'ocean',    dark: 'ocean-dark' },
+    ember:    { light: 'ember',    dark: 'ember-dark' },
+    forest:   { light: 'forest',   dark: 'forest-dark' },
+    midnight: { light: 'midnight', dark: 'midnight-dark' },
+};
+
+function getCurrentState() {
+    return {
+        theme: localStorage.getItem("lynk-theme-name") || "sakura",
+        dark:  localStorage.getItem("lynk-dark") === "1"
+    };
+}
+
+function applyTheme(themeName, isDark) {
+    const theme = THEMES[themeName] || THEMES.sakura;
+    const val = isDark ? theme.dark : theme.light;
+    document.documentElement.setAttribute("data-theme", val);
+    localStorage.setItem("lynk-theme-name", themeName);
+    localStorage.setItem("lynk-dark", isDark ? "1" : "0");
+    const navBtn = document.getElementById("themeBtn");
+    if (navBtn) navBtn.textContent = isDark ? "☀️" : "🌙";
+    syncUI(themeName, isDark);
+}
+
+function syncUI(themeName, isDark) {
+    const track = document.getElementById('darkToggle');
+    const thumb = document.getElementById('darkThumb');
+    if (track && thumb) {
+        track.style.background = isDark ? 'var(--purple)' : 'var(--border)';
+        thumb.style.left = isDark ? '25px' : '3px';
+    }
+    document.querySelectorAll('.theme-card').forEach(c => c.classList.remove('active'));
+    const activeCard = document.getElementById('theme-' + themeName);
+    if (activeCard) activeCard.classList.add('active');
+}
+
+function toggleDark() {
+    const { theme, dark } = getCurrentState();
+    applyTheme(theme, !dark);
+}
+
+function selectTheme(name) {
+    const { dark } = getCurrentState();
+    applyTheme(name, dark);
+}
+
+// password strength checker
+function checkStrength(pw) {
+    const fill = document.getElementById('strengthFill');
+    const label = document.getElementById('strengthLabel');
+    let score = 0;
+    if (pw.length >= 8) score++;
+    if (pw.length >= 12) score++;
+    if (/[A-Z]/.test(pw)) score++;
+    if (/[0-9]/.test(pw)) score++;
+    if (/[^A-Za-z0-9]/.test(pw)) score++;
+
+    const levels = [
+        { pct: '0%',   color: 'var(--border)',  text: '' },
+        { pct: '25%',  color: '#e84855',        text: '⚠️ Very Weak' },
+        { pct: '50%',  color: '#ffb347',        text: '🟡 Weak' },
+        { pct: '70%',  color: '#7db8e8',        text: '🔵 Medium' },
+        { pct: '85%',  color: '#5cc97a',        text: '🟢 Strong' },
+        { pct: '100%', color: '#2d6a2d',        text: '💪 Very Strong' },
+    ];
+    const level = levels[Math.min(score, 5)];
+    fill.style.width = level.pct;
+    fill.style.background = level.color;
+    label.textContent = level.text;
+    label.style.color = level.color;
+}
+
+(function init() {
+    const { theme, dark } = getCurrentState();
+    applyTheme(theme, dark);
+})();
+</script>
+
+{% endblock %}

@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="center-wrapper">
+    <div class="card auth-card" style="max-width:520px;">
+        <h2 style="font-family:'Playfair Display',serif; font-size:22px; font-weight:700; margin-bottom:24px;">
+            ✏️ Edit Post
+        </h2>
+        <form method="POST" enctype="multipart/form-data">
+            <div class="form-group">
+                <label>Content</label>
+                <textarea name="content" rows="5">{{ post.content or '' }}</textarea>
+            </div>
+
+            {% if post.image %}
+            <div style="margin-bottom:16px;">
+                <div style="font-size:12px;font-weight:800;color:var(--muted);text-transform:uppercase;
+                            letter-spacing:0.6px;margin-bottom:8px;">Current Image</div>
+                <img src="{{ url_for('static', filename='uploads/' + post.image) }}"
+                     style="width:100%;max-height:200px;object-fit:cover;border-radius:12px;
+                            border:1.5px solid var(--border);">
+            </div>
+            {% endif %}
+
+            <div class="form-group">
+                <label>Replace Image (optional)</label>
+                <input type="file" name="image" accept="image/*"
+                       style="padding:10px;background:var(--surface2);border:1.5px solid var(--border);
+                              border-radius:12px;width:100%;cursor:pointer;">
+            </div>
+
+            <!-- Privacy -->
+            <div style="display:flex;align-items:center;justify-content:space-between;
+                        padding:12px 16px;background:var(--surface2);border:1.5px solid var(--border);
+                        border-radius:12px;margin-bottom:10px;">
+                <div>
+                    <div style="font-size:14px;font-weight:700;color:var(--text);" id="privacyLabel">
+                        {{ '🔒 Private' if post.is_private else '🌍 Public' }}
+                    </div>
+                    <div style="font-size:12px;color:var(--muted);margin-top:2px;" id="privacyDesc">
+                        {{ 'Only you can see this post' if post.is_private else 'Everyone can see this post' }}
+                    </div>
+                </div>
+                <div onclick="togglePrivacy()" style="cursor:pointer;position:relative;width:48px;height:26px;">
+                    <div id="toggleTrack" style="width:48px;height:26px;border-radius:99px;
+                         background:{{ 'var(--purple)' if post.is_private else 'var(--border)' }};
+                         transition:background 0.3s;"></div>
+                    <div id="toggleThumb" style="position:absolute;top:3px;
+                         left:{{ '25px' if post.is_private else '3px' }};
+                         width:20px;height:20px;border-radius:50%;background:white;
+                         box-shadow:0 1px 4px rgba(0,0,0,0.2);transition:left 0.3s;"></div>
+                </div>
+            </div>
+
+            <!-- Sensitive -->
+            <div style="display:flex;align-items:center;justify-content:space-between;
+                        padding:12px 16px;background:var(--surface2);border:1.5px solid var(--border);
+                        border-radius:12px;margin-bottom:16px;">
+                <div>
+                    <div style="font-size:14px;font-weight:700;color:var(--text);" id="sensitiveLabel">
+                        {{ '⚠️ Sensitive Content' if post.is_sensitive else '✅ Safe Content' }}
+                    </div>
+                    <div style="font-size:12px;color:var(--muted);margin-top:2px;" id="sensitiveDesc">
+                        {{ 'Viewers see a warning before viewing' if post.is_sensitive else 'No content warning' }}
+                    </div>
+                </div>
+                <div onclick="toggleSensitive()" style="cursor:pointer;position:relative;width:48px;height:26px;">
+                    <div id="sensitiveTrack" style="width:48px;height:26px;border-radius:99px;
+                         background:{{ '#e84855' if post.is_sensitive else 'var(--border)' }};
+                         transition:background 0.3s;"></div>
+                    <div id="sensitiveThumb" style="position:absolute;top:3px;
+                         left:{{ '25px' if post.is_sensitive else '3px' }};
+                         width:20px;height:20px;border-radius:50%;background:white;
+                         box-shadow:0 1px 4px rgba(0,0,0,0.2);transition:left 0.3s;"></div>
+                </div>
+            </div>
+
+            <input type="hidden" name="is_private" id="isPrivate" value="{{ '1' if post.is_private else '0' }}">
+            <input type="hidden" name="is_sensitive" id="isSensitive" value="{{ '1' if post.is_sensitive else '0' }}">
+
+            <div style="display:flex; gap:10px;">
+                <button type="submit" class="btn w-full">Save Changes</button>
+                <a href="{{ url_for('main.home') }}" class="btn btn-ghost w-full">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+let isPrivateFlag = {{ 'true' if post.is_private else 'false' }};
+let isSensitiveFlag = {{ 'true' if post.is_sensitive else 'false' }};
+
+function togglePrivacy() {
+    isPrivateFlag = !isPrivateFlag;
+    document.getElementById('toggleTrack').style.background = isPrivateFlag ? 'var(--purple)' : 'var(--border)';
+    document.getElementById('toggleThumb').style.left = isPrivateFlag ? '25px' : '3px';
+    document.getElementById('privacyLabel').innerHTML = isPrivateFlag ? '🔒 Private' : '🌍 Public';
+    document.getElementById('privacyDesc').innerHTML = isPrivateFlag ? 'Only you can see this post' : 'Everyone can see this post';
+    document.getElementById('isPrivate').value = isPrivateFlag ? '1' : '0';
+}
+
+function toggleSensitive() {
+    isSensitiveFlag = !isSensitiveFlag;
+    document.getElementById('sensitiveTrack').style.background = isSensitiveFlag ? '#e84855' : 'var(--border)';
+    document.getElementById('sensitiveThumb').style.left = isSensitiveFlag ? '25px' : '3px';
+    document.getElementById('sensitiveLabel').innerHTML = isSensitiveFlag ? '⚠️ Sensitive Content' : '✅ Safe Content';
+    document.getElementById('sensitiveDesc').innerHTML = isSensitiveFlag ? 'Viewers see a warning before viewing' : 'No content warning';
+    document.getElementById('isSensitive').value = isSensitiveFlag ? '1' : '0';
+}
+</script>
+
+{% endblock %}

@@ -1,0 +1,486 @@
+{% extends "base.html" %}
+{% block title %}Moderate Posts — Admin{% endblock %}
+
+{% block content %}
+<style>
+/* ── Light theme fixes ── */
+[data-theme="light"] .admin-header {
+    background: linear-gradient(135deg, #f3f0ff, #ede9fe) !important;
+    border-color: rgba(139,92,246,.2) !important;
+}
+[data-theme="light"] .admin-header h1 {
+    background: linear-gradient(135deg, #dc2626, #ea580c) !important;
+    -webkit-background-clip: text !important;
+    -webkit-text-fill-color: transparent !important;
+    background-clip: text !important;
+}
+[data-theme="light"] .admin-header p { color: rgba(0,0,0,.5) !important; }
+
+[data-theme="light"] .admin-nav a {
+    background: rgba(0,0,0,.04) !important;
+    border-color: rgba(0,0,0,.1) !important;
+    color: rgba(0,0,0,.55) !important;
+}
+[data-theme="light"] .admin-nav a:hover,
+[data-theme="light"] .admin-nav a.active {
+    background: rgba(220,38,38,.08) !important;
+    border-color: rgba(220,38,38,.2) !important;
+    color: #dc2626 !important;
+}
+
+[data-theme="light"] .stat-card {
+    background: rgba(0,0,0,.03) !important;
+    border-color: rgba(0,0,0,.08) !important;
+}
+[data-theme="light"] .stat-card .val {
+    background: linear-gradient(135deg, #dc2626, #ea580c) !important;
+    -webkit-background-clip: text !important;
+    -webkit-text-fill-color: transparent !important;
+    background-clip: text !important;
+}
+[data-theme="light"] .stat-card .icon { filter: none !important; }
+[data-theme="light"] .stat-card .lbl { color: rgba(0,0,0,.4) !important; }
+[data-theme="light"] .stat-card .sub { color: rgba(0,0,0,.3) !important; }
+
+[data-theme="light"] .panel,
+[data-theme="light"] .users-table,
+[data-theme="light"] .report-card,
+[data-theme="light"] .post-card {
+    background: rgba(0,0,0,.02) !important;
+    border-color: rgba(0,0,0,.08) !important;
+}
+[data-theme="light"] .panel-header {
+    border-color: rgba(0,0,0,.06) !important;
+}
+[data-theme="light"] .panel-header h3 { color: rgba(0,0,0,.7) !important; }
+[data-theme="light"] .panel-header a { color: #dc2626 !important; }
+
+[data-theme="light"] .report-row,
+[data-theme="light"] .user-row {
+    border-color: rgba(0,0,0,.05) !important;
+}
+[data-theme="light"] .report-row:hover,
+[data-theme="light"] .user-row:hover {
+    background: rgba(0,0,0,.02) !important;
+}
+
+[data-theme="light"] .user-name,
+[data-theme="light"] .post-author-name { color: rgba(0,0,0,.8) !important; }
+[data-theme="light"] .user-email,
+[data-theme="light"] .user-meta,
+[data-theme="light"] .report-meta,
+[data-theme="light"] .post-time,
+[data-theme="light"] .cell { color: rgba(0,0,0,.45) !important; }
+
+[data-theme="light"] .table-header {
+    color: rgba(0,0,0,.35) !important;
+    border-color: rgba(0,0,0,.06) !important;
+}
+[data-theme="light"] .user-row { border-color: rgba(0,0,0,.04) !important; }
+[data-theme="light"] .user-row:hover { background: rgba(0,0,0,.02) !important; }
+
+[data-theme="light"] .search-bar input {
+    background: rgba(0,0,0,.04) !important;
+    border-color: rgba(0,0,0,.1) !important;
+    color: rgba(0,0,0,.85) !important;
+}
+[data-theme="light"] .search-bar input:focus {
+    border-color: rgba(220,38,38,.3) !important;
+}
+[data-theme="light"] .search-bar button {
+    background: rgba(220,38,38,.08) !important;
+    border-color: rgba(220,38,38,.2) !important;
+    color: #dc2626 !important;
+}
+
+[data-theme="light"] .filter-tab {
+    background: rgba(0,0,0,.03) !important;
+    border-color: rgba(0,0,0,.1) !important;
+    color: rgba(0,0,0,.5) !important;
+}
+[data-theme="light"] .filter-tab:hover,
+[data-theme="light"] .filter-tab.active {
+    background: rgba(220,38,38,.08) !important;
+    border-color: rgba(220,38,38,.2) !important;
+    color: #dc2626 !important;
+}
+
+[data-theme="light"] .report-desc {
+    background: rgba(0,0,0,.03) !important;
+    color: rgba(0,0,0,.55) !important;
+    border-left-color: rgba(220,38,38,.3) !important;
+}
+[data-theme="light"] .post-preview {
+    background: rgba(0,0,0,.03) !important;
+    border-color: rgba(0,0,0,.07) !important;
+}
+[data-theme="light"] .post-content-preview {
+    background: rgba(0,0,0,.03) !important;
+    color: rgba(0,0,0,.6) !important;
+    border-left-color: rgba(0,0,0,.1) !important;
+}
+[data-theme="light"] .post-stats { color: rgba(0,0,0,.4) !important; }
+
+[data-theme="light"] .act-btn.view,
+[data-theme="light"] .p-btn.view,
+[data-theme="light"] .r-btn.view {
+    background: rgba(139,92,246,.08) !important;
+    border-color: rgba(139,92,246,.2) !important;
+    color: #7c3aed !important;
+}
+[data-theme="light"] .act-btn.ban,
+[data-theme="light"] .act-btn.delete,
+[data-theme="light"] .p-btn.delete,
+[data-theme="light"] .r-btn.delete-post {
+    background: rgba(220,38,38,.07) !important;
+    border-color: rgba(220,38,38,.2) !important;
+    color: #dc2626 !important;
+}
+[data-theme="light"] .act-btn.unban,
+[data-theme="light"] .r-btn.resolve {
+    background: rgba(16,185,129,.07) !important;
+    border-color: rgba(16,185,129,.2) !important;
+    color: #059669 !important;
+}
+[data-theme="light"] .r-btn.dismiss,
+[data-theme="light"] .act-btn {
+    background: rgba(0,0,0,.04) !important;
+    border-color: rgba(0,0,0,.1) !important;
+    color: rgba(0,0,0,.55) !important;
+}
+
+[data-theme="light"] .page-btn {
+    background: rgba(0,0,0,.03) !important;
+    border-color: rgba(0,0,0,.08) !important;
+    color: rgba(0,0,0,.5) !important;
+}
+[data-theme="light"] .page-btn.active,
+[data-theme="light"] .page-btn:hover {
+    background: rgba(220,38,38,.08) !important;
+    border-color: rgba(220,38,38,.2) !important;
+    color: #dc2626 !important;
+}
+
+[data-theme="light"] .empty-panel,
+[data-theme="light"] .empty-state { color: rgba(0,0,0,.4) !important; }
+[data-theme="light"] .empty-state { 
+    background: rgba(0,0,0,.02) !important;
+    border-color: rgba(0,0,0,.08) !important;
+}
+
+[data-theme="light"] .confirm-box {
+    background: #fff !important;
+    border-color: rgba(220,38,38,.2) !important;
+}
+[data-theme="light"] .confirm-box h4 { color: #dc2626 !important; }
+[data-theme="light"] .confirm-box p { color: rgba(0,0,0,.5) !important; }
+[data-theme="light"] .ban-reason-input {
+    background: rgba(0,0,0,.04) !important;
+    border-color: rgba(220,38,38,.15) !important;
+    color: rgba(0,0,0,.8) !important;
+}
+
+[data-theme="light"] .grid-2 .panel { background: rgba(0,0,0,.02) !important; }
+.admin-wrap { max-width: 1100px; margin: 0 auto; padding: 2rem 1rem; }
+.admin-header {
+    background: linear-gradient(135deg, #1a0a2e, #0d1b2a);
+    border: 1px solid rgba(239,68,68,.25);
+    border-radius: 20px; padding: 1.75rem 2rem;
+    margin-bottom: 2rem;
+    display: flex; align-items: center; justify-content: space-between;
+    flex-wrap: wrap; gap: 1rem;
+}
+.admin-header h1 {
+    font-size: 1.6rem; font-weight: 800;
+    background: linear-gradient(135deg, #f87171, #fb923c);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+.admin-header p { color: rgba(255,255,255,.4); font-size: .85rem; margin-top: .2rem; }
+.admin-nav { display: flex; gap: .6rem; flex-wrap: wrap; }
+.admin-nav a {
+    padding: .45rem 1rem; border-radius: 10px; font-size: .82rem; font-weight: 600;
+    text-decoration: none; transition: all .2s;
+    border: 1px solid rgba(255,255,255,.1);
+    background: rgba(255,255,255,.05); color: rgba(255,255,255,.6);
+}
+.admin-nav a:hover, .admin-nav a.active {
+    background: rgba(239,68,68,.15);
+    border-color: rgba(239,68,68,.3); color: #f87171;
+}
+
+.search-bar {
+    display: flex; gap: .75rem; margin-bottom: 1.5rem;
+}
+.search-bar input {
+    flex: 1; background: rgba(255,255,255,.05);
+    border: 1px solid rgba(255,255,255,.1); border-radius: 12px;
+    padding: .65rem 1rem; color: rgba(255,255,255,.85);
+    font-size: .9rem; outline: none; font-family: inherit;
+    transition: border-color .2s;
+}
+.search-bar input:focus { border-color: rgba(239,68,68,.4); }
+.search-bar button {
+    padding: .65rem 1.25rem; background: rgba(239,68,68,.15);
+    border: 1px solid rgba(239,68,68,.3); border-radius: 12px;
+    color: #f87171; font-size: .85rem; font-weight: 600;
+    cursor: pointer; font-family: inherit; transition: all .2s;
+}
+.search-bar button:hover { background: rgba(239,68,68,.25); }
+
+.post-card {
+    background: rgba(255,255,255,.03);
+    border: 1px solid rgba(255,255,255,.07);
+    border-radius: 16px; padding: 1.25rem 1.5rem;
+    margin-bottom: 1rem; transition: border-color .2s;
+}
+.post-card:hover { border-color: rgba(239,68,68,.15); }
+
+.post-top {
+    display: flex; align-items: center; gap: .85rem; margin-bottom: .85rem;
+}
+.post-av {
+    width: 40px; height: 40px; border-radius: 50%; flex-shrink: 0;
+    background: linear-gradient(135deg, #8b5cf6, #6366f1);
+    display: flex; align-items: center; justify-content: center;
+    font-size: .95rem; overflow: hidden;
+}
+.post-av img { width: 100%; height: 100%; object-fit: cover; }
+.post-author-name {
+    font-size: .88rem; font-weight: 700; color: rgba(255,255,255,.8);
+    text-decoration: none;
+}
+.post-author-name:hover { color: #a78bfa; }
+.post-time { font-size: .72rem; color: rgba(255,255,255,.3); margin-left: auto; }
+
+.post-content-preview {
+    font-size: .88rem; color: rgba(255,255,255,.6);
+    line-height: 1.6; margin-bottom: .85rem;
+    background: rgba(255,255,255,.03); border-radius: 10px;
+    padding: .75rem 1rem; border-left: 3px solid rgba(255,255,255,.1);
+}
+
+.post-image-preview {
+    width: 100%; max-height: 200px; object-fit: cover;
+    border-radius: 10px; margin-bottom: .85rem;
+    border: 1px solid rgba(255,255,255,.08);
+}
+
+.post-stats {
+    display: flex; gap: 1.25rem; margin-bottom: .85rem;
+    font-size: .78rem; color: rgba(255,255,255,.35);
+}
+.post-stats span { display: flex; align-items: center; gap: .3rem; }
+
+.post-badges { display: flex; gap: .4rem; flex-wrap: wrap; margin-bottom: .75rem; }
+.badge {
+    font-size: .65rem; font-weight: 700; padding: .15rem .5rem;
+    border-radius: 6px; display: inline-block;
+}
+.badge-private { background: rgba(255,255,255,.08); color: rgba(255,255,255,.5); border: 1px solid rgba(255,255,255,.1); }
+.badge-sensitive { background: rgba(239,68,68,.1); color: #f87171; border: 1px solid rgba(239,68,68,.2); }
+.badge-reported { background: rgba(251,146,60,.1); color: #fb923c; border: 1px solid rgba(251,146,60,.2); }
+
+.post-actions { display: flex; gap: .5rem; flex-wrap: wrap; }
+.p-btn {
+    padding: .4rem .9rem; border-radius: 9px; font-size: .78rem; font-weight: 600;
+    cursor: pointer; font-family: inherit; transition: all .2s;
+    border: 1px solid transparent; text-decoration: none;
+    display: inline-flex; align-items: center; gap: .3rem;
+}
+.p-btn.view { background: rgba(139,92,246,.1); border-color: rgba(139,92,246,.25); color: #a78bfa; }
+.p-btn.delete { background: rgba(239,68,68,.12); border-color: rgba(239,68,68,.3); color: #f87171; }
+.p-btn:hover { opacity: .8; }
+
+.pagination-row { display: flex; justify-content: center; gap: .5rem; margin-top: 1.5rem; }
+.page-btn {
+    padding: .45rem .9rem; border-radius: 10px;
+    background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08);
+    color: rgba(255,255,255,.55); text-decoration: none; font-size: .82rem; transition: all .2s;
+}
+.page-btn.active, .page-btn:hover {
+    background: rgba(239,68,68,.15); border-color: rgba(239,68,68,.3); color: #f87171;
+}
+
+.empty-state {
+    text-align: center; padding: 4rem 2rem;
+    background: rgba(255,255,255,.02); border: 1px dashed rgba(255,255,255,.07);
+    border-radius: 18px; color: rgba(255,255,255,.35); font-size: .85rem;
+}
+</style>
+
+<div class="admin-wrap">
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for cat, msg in messages %}
+    <div style="background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.25);
+                border-radius:12px;padding:.75rem 1rem;margin-bottom:1rem;
+                color:#6ee7b7;font-size:.85rem;">{{ msg }}</div>
+    {% endfor %}
+  {% endwith %}
+
+  <div class="admin-header">
+    <div>
+      <h1>📝 Moderate Posts</h1>
+      <p>{{ posts.total }} total posts — search and remove violating content.</p>
+    </div>
+    <nav class="admin-nav">
+      <a href="{{ url_for('main.admin_dashboard') }}">📊 Overview</a>
+      <a href="{{ url_for('main.admin_users') }}">👥 Users</a>
+      <a href="{{ url_for('main.admin_reports') }}">🚩 Reports</a>
+      <a href="{{ url_for('main.admin_posts') }}" class="active">📝 Posts</a>
+      <a href="{{ url_for('main.home') }}">← Back to LYNK</a>
+    </nav>
+  </div>
+
+  <form method="GET" class="search-bar">
+    <input type="text" name="q" value="{{ search }}"
+           placeholder="Search post content…">
+    <button type="submit">🔍 Search</button>
+    {% if search %}
+    <a href="{{ url_for('main.admin_posts') }}"
+       style="padding:.65rem 1rem;background:rgba(255,255,255,.05);
+              border:1px solid rgba(255,255,255,.1);border-radius:12px;
+              color:rgba(255,255,255,.5);text-decoration:none;font-size:.85rem;">
+      Clear
+    </a>
+    {% endif %}
+  </form>
+  <div style="display:flex;gap:.6rem;margin-bottom:1.5rem;flex-wrap:wrap;">
+    <a href="{{ url_for('main.admin_posts') }}"
+       style="padding:.4rem 1rem;border-radius:20px;font-size:.82rem;font-weight:600;
+              text-decoration:none;border:1px solid rgba(255,255,255,.1);
+              background:{% if not flagged_only %}rgba(239,68,68,.15){% else %}rgba(255,255,255,.04){% endif %};
+              color:{% if not flagged_only %}#f87171{% else %}rgba(255,255,255,.5){% endif %};">
+        📋 All Posts
+    </a>
+    <a href="{{ url_for('main.admin_posts', flagged='1') }}"
+       style="padding:.4rem 1rem;border-radius:20px;font-size:.82rem;font-weight:600;
+              text-decoration:none;border:1px solid rgba(168,85,247,.2);
+              background:{% if flagged_only %}rgba(168,85,247,.2){% else %}rgba(255,255,255,.04){% endif %};
+              color:{% if flagged_only %}#c084fc{% else %}rgba(255,255,255,.5){% endif %};">
+        🤖 AI Flagged
+    </a>
+</div>
+
+  {% if posts.items %}
+    {% for post in posts.items %}
+    {% set report_count = post.reports | length %}
+    {% set is_flagged = post.is_flagged %}
+    <div class="post-card">
+
+      <div class="post-top">
+        <div class="post-av">
+          {% if post.author.profile_pic and post.author.profile_pic != 'default.jpg' %}
+          <img src="{{ url_for('static', filename='uploads/' + post.author.profile_pic) }}">
+          {% else %}{{ post.author.username[0].upper() }}{% endif %}
+        </div>
+        <div>
+          <a href="{{ url_for('main.profile', username=post.author.username) }}"
+             class="post-author-name" target="_blank">
+            @{{ post.author.username }}
+          </a>
+          <div style="font-size:.72rem;color:rgba(255,255,255,.3);margin-top:.1rem;">
+            {{ post.author.email }}
+          </div>
+        </div>
+        <span class="post-time">{{ post.timestamp.strftime('%b %d, %Y · %H:%M') }}</span>
+      </div>
+
+      {% if post.is_private or post.is_sensitive or report_count > 0 %}
+      <div class="post-badges">
+    {% if post.is_private %}
+    <span class="badge badge-private">🔒 Private</span>
+    {% endif %}
+    {% if post.is_sensitive %}
+    <span class="badge badge-sensitive">⚠️ Sensitive</span>
+    {% endif %}
+    {% if report_count > 0 %}
+    <span class="badge badge-reported">🚩 {{ report_count }} report{% if report_count != 1 %}s{% endif %}</span>
+    {% endif %}
+    {% if post.is_flagged %}
+    <span class="badge" style="background:rgba(168,85,247,.15);color:#c084fc;
+                               border:1px solid rgba(168,85,247,.3);">
+        🤖 AI Flagged
+    </span>
+    {% if post.flag_reason %}
+    <span style="font-size:.7rem;color:rgba(255,255,255,.35);font-style:italic;">
+        "{{ post.flag_reason }}"
+    </span>
+    {% endif %}
+    {% endif %}
+</div>
+      {% endif %}
+
+      {% if post.content %}
+      <div class="post-content-preview">
+        {{ post.content[:300] }}{% if post.content|length > 300 %}…{% endif %}
+      </div>
+      {% endif %}
+
+      {% if post.image %}
+      <img src="{{ url_for('static', filename='uploads/' + post.image) }}"
+           class="post-image-preview" alt="Post image">
+      {% endif %}
+
+      <div class="post-stats">
+        <span>❤️ {{ post.likes | length }} likes</span>
+        <span>💬 {{ post.comments | length }} comments</span>
+        <span>👁️ {{ post.view_count or 0 }} views</span>
+        <span>⚡ {{ post.reactions | length }} reactions</span>
+      </div>
+
+      <div class="post-actions">
+        <a href="{{ url_for('main.comment_post', post_id=post.id) }}"
+           class="p-btn view" target="_blank">👁️ View Post</a>
+        <a href="{{ url_for('main.profile', username=post.author.username) }}"
+           class="p-btn view" target="_blank">👤 View Author</a>
+        {% if report_count > 0 %}
+        <a href="{{ url_for('main.admin_reports') }}"
+           class="p-btn" style="background:rgba(251,146,60,.1);
+                                border-color:rgba(251,146,60,.25);color:#fb923c;">
+          🚩 View Reports
+        </a>
+        {% endif %}
+        <form method="POST"
+              action="{{ url_for('main.admin_delete_post', post_id=post.id) }}"
+              style="display:inline;"
+              onsubmit="return confirm('Permanently delete this post?')">
+          <button type="submit" class="p-btn delete">🗑️ Delete Post</button>
+        </form>
+      </div>
+
+    </div>
+    {% endfor %}
+
+    {% if posts.pages > 1 %}
+    <div class="pagination-row">
+      {% if posts.has_prev %}
+      <a href="{{ url_for('main.admin_posts', page=posts.prev_num, q=search) }}" class="page-btn">← Prev</a>
+      {% endif %}
+      {% for p in posts.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+        {% if p %}
+        <a href="{{ url_for('main.admin_posts', page=p, q=search) }}"
+           class="page-btn {% if p == posts.page %}active{% endif %}">{{ p }}</a>
+        {% else %}
+        <span class="page-btn" style="opacity:.3">…</span>
+        {% endif %}
+      {% endfor %}
+      {% if posts.has_next %}
+      <a href="{{ url_for('main.admin_posts', page=posts.next_num, q=search) }}" class="page-btn">Next →</a>
+      {% endif %}
+    </div>
+    {% endif %}
+
+  {% else %}
+  <div class="empty-state">
+    <div style="font-size:2.5rem;margin-bottom:.75rem;">📭</div>
+    <div style="font-weight:700;color:rgba(255,255,255,.5);margin-bottom:.4rem;">
+      No posts found
+    </div>
+    <div>{% if search %}No results for "{{ search }}"{% else %}No posts yet.{% endif %}</div>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}

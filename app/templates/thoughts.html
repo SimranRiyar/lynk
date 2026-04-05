@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div style="max-width:640px; margin:0 auto;">
+
+    <h2 class="search-heading" style="margin-bottom:6px;">💭 <span>Thoughts</span></h2>
+    <p class="search-sub">Raw, unfiltered — disappears in 6 hours. No likes, no pressure.</p>
+
+    <!-- Compose -->
+    <div style="background:var(--surface); border:1.5px solid var(--border);
+                border-radius:20px; padding:20px 22px; margin-bottom:24px;
+                box-shadow:0 4px 20px var(--shadow);">
+        <form method="POST">
+            <textarea name="content" placeholder="What's on your mind? It disappears in 6 hours… 💭"
+                      style="width:100%; border:none; background:transparent; font-size:15px;
+                             font-weight:500; color:var(--text); resize:none; min-height:80px;
+                             font-family:'Nunito',sans-serif; line-height:1.6;"
+                      maxlength="280" id="thoughtInput"
+                      oninput="this.style.height='auto'; this.style.height=this.scrollHeight+'px';
+                               document.getElementById('thoughtCount').textContent=this.value.length"></textarea>
+            <div style="display:flex; align-items:center; justify-content:space-between;
+                        padding-top:12px; border-top:1px solid var(--border); margin-top:8px;">
+                <span style="font-size:12px; color:var(--muted); font-weight:600;">
+                    <span id="thoughtCount">0</span>/280 · disappears in 6h
+                </span>
+                <button type="submit" class="btn" style="padding:9px 20px;">Share Thought</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Thoughts -->
+    {% if thoughts %}
+        {% for thought in thoughts %}
+        <div style="background:var(--surface); border:1.5px solid var(--border);
+                    border-radius:20px; padding:20px 24px; margin-bottom:14px;
+                    box-shadow:0 2px 14px var(--shadow); position:relative;">
+
+            {% set pct = ((thought.time_left_seconds() / 21600) * 100) | round | int %}
+            <div style="position:absolute; top:0; left:0; right:0; height:3px;
+                        background:var(--border); border-radius:20px 20px 0 0; overflow:hidden;">
+                <div style="height:100%; width:{{ pct }}%;
+                            background:linear-gradient(135deg, var(--purple), var(--pink));"></div>
+            </div>
+
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px;">
+                <div style="display:flex; align-items:center; gap:10px;">
+                    {% if thought.user_id == current_user.id %}
+                        {% if current_user.profile_pic and current_user.profile_pic != 'default.jpg' %}
+                            <img src="{{ url_for('static', filename='uploads/' + current_user.profile_pic) }}"
+                                 style="width:36px;height:36px;border-radius:50%;object-fit:cover;border:2px solid var(--pink);">
+                        {% else %}
+                            <img src="{{ url_for('static', filename='img/default_avatar.svg') }}"
+                                 style="width:36px;height:36px;border-radius:50%;object-fit:cover;border:2px solid var(--pink);">
+                        {% endif %}
+                        <span style="font-weight:700; font-size:14px; color:var(--purple);">You</span>
+                    {% else %}
+                        <div style="width:36px; height:36px; border-radius:50%;
+                                    background:linear-gradient(135deg,var(--purple),var(--pink));
+                                    display:flex; align-items:center; justify-content:center;
+                                    font-size:16px; color:white; font-weight:800;">
+                            {{ thought.author.username[0].upper() }}
+                        </div>
+                        <span style="font-weight:700; font-size:14px; color:var(--muted);">Anonymous</span>
+                    {% endif %}
+                </div>
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <span style="font-size:12px; color:var(--muted); font-weight:600;
+                                 background:var(--surface2); border:1px solid var(--border);
+                                 border-radius:99px; padding:3px 10px;">
+                        ⏱ {{ thought.time_left() }}
+                    </span>
+                    {% if thought.user_id == current_user.id %}
+                    <a href="{{ url_for('main.delete_thought', thought_id=thought.id) }}"
+                       style="color:var(--muted); font-size:13px; text-decoration:none;
+                              padding:4px 8px; border-radius:8px;"
+                       onclick="return confirm('Delete this thought?')">🗑</a>
+                    {% endif %}
+                </div>
+            </div>
+
+            <p style="font-size:15px; line-height:1.7; color:var(--text); font-weight:500; margin:0;">
+                {{ thought.content }}
+            </p>
+        </div>
+        {% endfor %}
+    {% else %}
+        <div class="empty-state">
+            <div class="emoji">💭</div>
+            <p>No thoughts yet. Share something raw and real!</p>
+        </div>
+    {% endif %}
+
+</div>
+
+{% endblock %}

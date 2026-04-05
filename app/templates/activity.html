@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div style="max-width:640px; margin:0 auto;">
+
+    <h2 class="search-heading" style="margin-bottom:6px;">⚡ <span>Activity</span></h2>
+    <p class="search-sub">Your follow requests and recent activity</p>
+
+    {% if pending_requests %}
+    <div class="glass-card mb-2" style="margin-bottom:24px;">
+        <div class="panel-title">📬 Follow Requests ({{ pending_requests | length }})</div>
+        {% for freq in pending_requests %}
+        {% set requester = freq.follower %}
+        <div style="display:flex; align-items:center; justify-content:space-between; padding:12px 0; border-bottom:1px solid var(--border);">
+            <div style="display:flex; align-items:center; gap:12px;">
+                {% if requester.profile_pic and requester.profile_pic != 'default.jpg' %}
+                    <img src="{{ url_for('static', filename='uploads/' + requester.profile_pic) }}"
+                         style="width:42px;height:42px;border-radius:50%;object-fit:cover;border:2px solid var(--pink);">
+                {% else %}
+                    <img src="{{ url_for('static', filename='img/default_avatar.svg') }}"
+                         style="width:42px;height:42px;border-radius:50%;object-fit:cover;border:2px solid var(--pink);">
+                {% endif %}
+                <div>
+                    <a href="{{ url_for('main.profile', username=requester.username) }}"
+                       style="font-weight:800; font-size:15px; color:var(--text); text-decoration:none;">
+                        {{ requester.username }}
+                    </a>
+                    <div style="font-size:12px; color:var(--muted); margin-top:2px;">wants to follow you</div>
+                </div>
+            </div>
+            <div style="display:flex; gap:8px;">
+                <a href="{{ url_for('main.accept_follow', follower_id=requester.id) }}" class="btn btn-sm">Accept</a>
+                <a href="{{ url_for('main.decline_follow', follower_id=requester.id) }}" class="btn btn-danger btn-sm">Decline</a>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="glass-card">
+        <div class="panel-title">🔔 Recent Activity</div>
+        {% if notifications %}
+            {% for notif in notifications %}
+            <div style="display:flex; align-items:center; gap:12px; padding:12px 0; border-bottom:1px solid var(--border);
+                        {% if not notif.is_read %}background:var(--purple-soft); margin:0 -22px; padding:12px 22px;{% endif %}">
+                {% if notif.actor.profile_pic and notif.actor.profile_pic != 'default.jpg' %}
+                    <img src="{{ url_for('static', filename='uploads/' + notif.actor.profile_pic) }}"
+                         style="width:40px;height:40px;border-radius:50%;object-fit:cover;border:2px solid var(--pink);flex-shrink:0;">
+                {% else %}
+                    <img src="{{ url_for('static', filename='img/default_avatar.svg') }}"
+                         style="width:40px;height:40px;border-radius:50%;object-fit:cover;border:2px solid var(--pink);flex-shrink:0;">
+                {% endif %}
+                <div style="flex:1;">
+                    <span style="font-weight:800;">
+                        <a href="{{ url_for('main.profile', username=notif.actor.username) }}"
+                           style="color:var(--text); text-decoration:none;">{{ notif.actor.username }}</a>
+                    </span>
+                    {% if notif.type == "like" %}
+                        <span style="color:var(--muted); font-size:14px;"> ❤️ liked your post</span>
+                        {% if notif.post %}
+                        <a href="{{ url_for('main.comment_post', post_id=notif.post.id) }}"
+                           style="display:block; font-size:13px; color:var(--muted); margin-top:3px;
+                                  white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:300px;">
+                            "{{ notif.post.content[:60] }}..."
+                        </a>
+                        {% endif %}
+                    {% elif notif.type == "comment" %}
+                        <span style="color:var(--muted); font-size:14px;"> 💬 commented on your post</span>
+                        {% if notif.post %}
+                        <a href="{{ url_for('main.comment_post', post_id=notif.post.id) }}"
+                           style="display:block; font-size:13px; color:var(--muted); margin-top:3px;
+                                  white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:300px;">
+                            "{{ notif.post.content[:60] }}..."
+                        </a>
+                        {% endif %}
+                    {% elif notif.type == "follow_accept" %}
+                        <span style="color:var(--muted); font-size:14px;"> ✅ accepted your follow request</span>
+                        {% elif notif.type == "capsule_unlocked" %}
+                        <span style="color:var(--muted); font-size:14px;"> 🎉 Your memory capsule has opened!</span>
+                        {% if notif.post %}
+                        <a href="{{ url_for('main.comment_post', post_id=notif.post.id) }}"
+                           style="display:block; font-size:13px; color:var(--purple); margin-top:3px; font-weight:700;">
+                            View your memory →
+                        </a>
+                        {% endif %}
+                        {% elif notif.type == "agent_conversation" %}
+                        <span style="color:var(--muted); font-size:14px;"> 🤖 started a conversation on your agent's post</span>
+                        {% if notif.post %}
+                        <a href="{{ url_for('main.comment_post', post_id=notif.post.id) }}"
+                           style="display:block; font-size:13px; color:var(--purple); margin-top:3px; font-weight:700;">
+                            View post →
+                        </a>
+                        {% endif %}
+ 
+                        {% elif notif.type == "mention" %}
+    <span style="color:var(--muted); font-size:14px;"> 🔔 mentioned you in a post</span>
+    {% if notif.post %}
+    <a href="{{ url_for('main.comment_post', post_id=notif.post.id) }}"
+       style="display:block; font-size:13px; color:var(--muted); margin-top:3px;
+              white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:300px;">
+        "{{ notif.post.content[:60] if notif.post.content else 'Photo post' }}..."
+    </a>
+    {% endif %}
+{% elif notif.type == "reaction" %}
+    <span style="color:var(--muted); font-size:14px;"> reacted to your post</span>
+                    {% endif %}
+                </div>
+                <div style="font-size:11px; color:var(--muted); flex-shrink:0;">
+                    {{ notif.timestamp.strftime('%b %d') }}
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="empty-state" style="padding:32px 0;">
+                <div class="emoji">🌸</div>
+                <p>No activity yet — start connecting!</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

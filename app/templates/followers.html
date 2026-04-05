@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="search-page">
+    <div style="margin-bottom:24px;">
+        <a href="{{ url_for('main.profile', username=user.username) }}"
+           style="color:var(--muted); font-size:14px; font-weight:600; text-decoration:none;">
+            ← Back to profile
+        </a>
+    </div>
+
+    <h2 class="search-heading"><span>{{ user.username }}</span>'s Followers</h2>
+    <p class="search-sub">{{ followers_users | length }} follower{{ 's' if followers_users | length != 1 }}</p>
+
+    {% if followers_users %}
+        {% for u in followers_users %}
+        <div class="user-result-card">
+            <div class="user-result-left">
+                {% if u.profile_pic and u.profile_pic != 'default.jpg' %}
+                    <img src="{{ url_for('static', filename='uploads/' + u.profile_pic) }}" alt="{{ u.username }}">
+                {% else %}
+                    <img src="{{ url_for('static', filename='img/default_avatar.svg') }}" alt="{{ u.username }}">
+                {% endif %}
+                <div>
+                    <div class="user-result-name">
+                        <a href="{{ url_for('main.profile', username=u.username) }}">{{ u.username }}</a>
+                    </div>
+                    <div class="user-result-meta">
+                        {{ u.followers.count() }} followers · {{ u.posts | length }} posts
+                    </div>
+                </div>
+            </div>
+            <div style="display:flex; gap:8px; align-items:center;">
+                {% if u != current_user %}
+                    {% if current_user.is_following(u) %}
+                        <a href="{{ url_for('main.unfollow', username=u.username) }}" class="btn btn-ghost btn-sm">Unfollow</a>
+                    {% else %}
+                        <a href="{{ url_for('main.follow', username=u.username) }}" class="btn btn-sm">Follow</a>
+                    {% endif %}
+                {% endif %}
+                {% if user == current_user %}
+                    <a href="{{ url_for('main.remove_follower', username=u.username) }}"
+                       class="btn btn-danger btn-sm"
+                       onclick="return confirm('Remove {{ u.username }} from your followers?')">Remove</a>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+        <div class="empty-state">
+            <div class="emoji">👥</div>
+            <p>{{ user.username }} has no followers yet.</p>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

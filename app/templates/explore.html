@@ -1,0 +1,333 @@
+{% extends "base.html" %}
+{% block content %}
+
+<style>
+.explore-wrap { max-width: 1100px; margin: 0 auto; }
+
+.explore-header {
+    text-align: center; margin-bottom: 40px;
+}
+.explore-header h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: 36px; font-weight: 700;
+    margin-bottom: 8px;
+}
+.explore-header h1 span {
+    background: linear-gradient(135deg, var(--purple), var(--pink));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+.explore-header p {
+    color: var(--muted); font-size: 15px; font-weight: 500;
+}
+
+.section-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 20px; font-weight: 700;
+    margin-bottom: 20px; color: var(--text);
+    display: flex; align-items: center; gap: 10px;
+}
+.section-title::after {
+    content: '';
+    flex: 1; height: 1.5px;
+    background: var(--border);
+}
+
+/* TRENDING GRID */
+.trending-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 20px;
+    margin-bottom: 48px;
+}
+.trending-post-card {
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: 0 2px 12px var(--shadow);
+    transition: transform 0.25s, box-shadow 0.25s;
+    text-decoration: none;
+    display: block;
+    cursor: pointer;
+}
+.trending-post-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 36px var(--shadow-md);
+}
+.trending-post-img {
+    width: 100%; height: 220px;
+    object-fit: cover; display: block;
+    transition: transform 0.4s;
+}
+.trending-post-card:hover .trending-post-img {
+    transform: scale(1.03);
+}
+.trending-post-body {
+    padding: 14px 16px 16px;
+}
+.trending-post-author {
+    display: flex; align-items: center; gap: 8px;
+    margin-bottom: 8px;
+}
+.trending-post-author img {
+    width: 30px; height: 30px; border-radius: 50%;
+    object-fit: cover; border: 2px solid var(--pink);
+    box-shadow: 0 0 0 2px var(--pink-soft);
+}
+.trending-post-author .name {
+    font-size: 13px; font-weight: 800; color: var(--purple);
+}
+.trending-post-text {
+    font-size: 14px; color: var(--text); font-weight: 500;
+    line-height: 1.6;
+    display: -webkit-box; -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical; overflow: hidden;
+    margin-bottom: 12px;
+}
+.trending-post-stats {
+    display: flex; gap: 12px; align-items: center;
+    font-size: 12px; color: var(--muted); font-weight: 600;
+    padding-top: 10px; border-top: 1px solid var(--border);
+}
+.trending-post-stats span {
+    display: flex; align-items: center; gap: 4px;
+}
+.trending-post-stats .date {
+    margin-left: auto;
+    font-size: 11px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 99px;
+    padding: 2px 10px;
+}
+
+.text-only-bg {
+    height: 6px;
+    background: linear-gradient(135deg, var(--purple), var(--pink));
+}
+.text-only-banner {
+    height: 100px;
+    background: linear-gradient(135deg, var(--purple-soft), var(--pink-soft));
+    display: flex; align-items: center; justify-content: center;
+    font-size: 36px;
+    border-bottom: 1px solid var(--border);
+}
+
+/* PEOPLE GRID */
+.people-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 16px;
+    margin-bottom: 48px;
+}
+.people-card {
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: 20px;
+    padding: 24px 20px 20px;
+    text-align: center;
+    box-shadow: 0 2px 12px var(--shadow);
+    transition: transform 0.2s, box-shadow 0.2s;
+    position: relative; overflow: hidden;
+}
+.people-card::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0;
+    height: 56px;
+    background: linear-gradient(135deg, var(--purple), var(--pink));
+    opacity: 0.12;
+}
+.people-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 28px var(--shadow-md);
+}
+.people-card img {
+    width: 64px; height: 64px; border-radius: 50%;
+    object-fit: cover; border: 3px solid var(--pink);
+    box-shadow: 0 0 0 4px var(--pink-soft);
+    position: relative; z-index: 1;
+    margin-bottom: 12px;
+    transition: transform 0.2s;
+}
+.people-card:hover img { transform: scale(1.05); }
+.people-card .pname {
+    font-weight: 800; font-size: 15px;
+    color: var(--text); margin-bottom: 4px;
+}
+.people-card .pname a {
+    color: var(--text); text-decoration: none;
+}
+.people-card .pname a:hover { color: var(--purple); }
+.people-card .pbio {
+    font-size: 12px; color: var(--muted); font-weight: 500;
+    line-height: 1.5; margin-bottom: 8px;
+    display: -webkit-box; -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical; overflow: hidden;
+    min-height: 36px;
+}
+.people-card .pfollowers {
+    font-size: 12px; color: var(--muted);
+    font-weight: 600; margin-bottom: 16px;
+}
+.people-card .pfollowers strong {
+    color: var(--text); font-size: 15px; font-weight: 900;
+}
+
+/* HASHTAG PILLS */
+.hashtag-pill {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 10px 20px; border-radius: 99px;
+    background: var(--surface); border: 1.5px solid var(--border);
+    text-decoration: none; transition: all 0.2s;
+    box-shadow: 0 2px 8px var(--shadow);
+}
+.hashtag-pill:hover {
+    border-color: var(--blue);
+    background: var(--blue-soft);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px var(--shadow-md);
+}
+.hashtag-pill .tag-name {
+    color: var(--blue); font-size: 15px; font-weight: 800;
+}
+.hashtag-pill .tag-count {
+    background: var(--blue-soft); color: var(--blue);
+    font-size: 11px; font-weight: 800;
+    padding: 2px 8px; border-radius: 99px;
+    border: 1px solid var(--blue);
+}
+</style>
+
+<div class="explore-wrap">
+
+    <!-- Header -->
+    <div class="explore-header">
+        <h1>Explore <span>Lynk</span></h1>
+        <p>Discover trending posts, hashtags and new people</p>
+    </div>
+
+    <!-- 🔥 Trending Posts -->
+    <div class="section-title">🔥 Trending This Week</div>
+
+    {% if trending_posts %}
+    <div class="trending-grid">
+        {% for post, like_count in trending_posts %}
+        <a href="{{ url_for('main.comment_post', post_id=post.id) }}"
+           class="trending-post-card {% if not post.image %}text-only{% endif %}">
+
+            {% if post.image %}
+                <div style="overflow:hidden;">
+                    <img src="{{ url_for('static', filename='uploads/' + post.image) }}"
+                         class="trending-post-img" alt="post">
+                </div>
+            {% else %}
+                <div class="text-only-banner">
+                    {% set banners = ['✨', '💭', '🌸', '💫', '🎯', '🌙', '🔥', '💡', '🎨', '🌿'] %}
+                    {{ banners[post.id % 10] }}
+                </div>
+                <div class="text-only-bg"></div>
+            {% endif %}
+
+            <div class="trending-post-body">
+                <div class="trending-post-author">
+                    {% if post.author.profile_pic and post.author.profile_pic != 'default.jpg' %}
+                        <img src="{{ url_for('static', filename='uploads/' + post.author.profile_pic) }}"
+                             alt="{{ post.author.username }}">
+                    {% else %}
+                        <img src="{{ url_for('static', filename='img/default_avatar.svg') }}"
+                             alt="{{ post.author.username }}">
+                    {% endif %}
+                    <span class="name">@{{ post.author.username }}</span>
+                </div>
+
+                {% if post.content %}
+                <div class="trending-post-text">{{ post.content }}</div>
+                {% endif %}
+
+                <div class="trending-post-stats">
+                    <span>❤️ {{ like_count }}</span>
+                    <span>💬 {{ post.comments | length }}</span>
+                    <span class="date">{{ post.timestamp.strftime('%b %d') }}</span>
+                </div>
+            </div>
+        </a>
+        {% endfor %}
+    </div>
+
+    {% else %}
+    <div class="empty-state" style="margin-bottom:48px;">
+        <div class="emoji">🌱</div>
+        <p>No trending posts yet — be the first to post something!</p>
+    </div>
+    {% endif %}
+
+    <!-- 🏷️ Trending Hashtags -->
+    {% if trending_hashtags %}
+    <div class="section-title">🏷️ Trending Hashtags</div>
+    <div style="display:flex; flex-wrap:wrap; gap:10px; margin-bottom:48px;">
+        {% for tag, count in trending_hashtags %}
+        <a href="{{ url_for('main.hashtag', tag=tag) }}" class="hashtag-pill">
+            <span class="tag-name">#{{ tag }}</span>
+            <span class="tag-count">{{ count }} post{{ 's' if count != 1 }}</span>
+        </a>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- 👥 People to Follow -->
+    <div class="section-title">👥 People to Follow</div>
+
+    {% if people %}
+    <div class="people-grid">
+        {% for user, follower_count in people %}
+        <div class="people-card">
+            {% if user.profile_pic and user.profile_pic != 'default.jpg' %}
+                <img src="{{ url_for('static', filename='uploads/' + user.profile_pic) }}"
+                     alt="{{ user.username }}">
+            {% else %}
+                <img src="{{ url_for('static', filename='img/default_avatar.svg') }}"
+                     alt="{{ user.username }}">
+            {% endif %}
+
+            <div class="pname">
+                <a href="{{ url_for('main.profile', username=user.username) }}">
+                    {{ user.display_name or user.username }}
+                </a>
+            </div>
+            {% if user.display_name %}
+            <div style="font-size:12px;color:var(--muted);font-weight:500;margin-bottom:4px;">
+                @{{ user.username }}
+            </div>
+            {% endif %}
+
+            <div class="pbio">{{ user.bio or 'No bio yet.' }}</div>
+
+            <div class="pfollowers">
+                <strong>{{ follower_count }}</strong> followers
+            </div>
+
+            {% if current_user.has_requested(user) %}
+                <button class="btn btn-ghost btn-sm w-full"
+                        data-follow-user="{{ user.username }}">Requested ⏳</button>
+            {% elif current_user.is_following(user) %}
+                <button class="btn btn-ghost btn-sm w-full"
+                        data-follow-user="{{ user.username }}">Unfollow</button>
+            {% else %}
+                <button class="btn btn-sm w-full"
+                        data-follow-user="{{ user.username }}">Follow</button>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+
+    {% else %}
+    <div class="empty-state" style="margin-bottom:48px;">
+        <div class="emoji">👀</div>
+        <p>You're following everyone already!</p>
+    </div>
+    {% endif %}
+
+</div>
+
+{% endblock %}

@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="center-wrapper">
+    <div class="card auth-card" style="max-width:420px;text-align:center;">
+        <div style="font-size:48px;margin-bottom:16px;">📧</div>
+        <h2 style="font-family:'Playfair Display',serif;font-size:24px;
+                   font-weight:700;margin-bottom:8px;">Confirm Email Change</h2>
+        <p style="color:var(--muted);font-size:14px;font-weight:500;
+                  margin-bottom:28px;line-height:1.6;">
+            Click the button below to confirm your new email address.
+            This link expires in 1 hour.
+        </p>
+        <form method="POST">
+            <button type="submit" class="btn w-full">
+                ✅ Confirm New Email
+            </button>
+        </form>
+        <div style="margin-top:16px;">
+            <a href="{{ url_for('main.landing') }}"
+               style="color:var(--muted);font-size:13px;font-weight:600;text-decoration:none;">
+                Cancel
+            </a>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

@@ -1,0 +1,166 @@
+{% extends "base.html" %}
+{% block content %}
+
+<style>
+.hashtag-wrap { max-width: 700px; margin: 0 auto; }
+.hashtag-hero {
+    background: linear-gradient(135deg, var(--purple), var(--blue));
+    border-radius: 20px; padding: 32px;
+    margin-bottom: 28px; text-align: center;
+    box-shadow: 0 8px 32px var(--shadow-md);
+    position: relative; overflow: hidden;
+}
+.hashtag-hero::before {
+    content: '#';
+    position: absolute; right: 24px; top: 50%;
+    transform: translateY(-50%);
+    font-size: 120px; font-weight: 900;
+    color: rgba(255,255,255,0.08);
+    font-family: 'Playfair Display', serif;
+    line-height: 1;
+}
+.hashtag-hero h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: 32px; font-weight: 700;
+    color: white; margin-bottom: 8px;
+}
+.hashtag-hero p {
+    color: rgba(255,255,255,0.8);
+    font-size: 14px; font-weight: 500;
+}
+.related-tags {
+    display: flex; flex-wrap: wrap; gap: 8px;
+    margin-bottom: 28px;
+}
+.related-tag {
+    padding: 6px 14px; border-radius: 99px;
+    background: var(--surface2); border: 1.5px solid var(--border);
+    color: var(--blue); font-size: 13px; font-weight: 700;
+    text-decoration: none; transition: all 0.2s;
+}
+.related-tag:hover {
+    background: var(--blue-soft); border-color: var(--blue);
+    transform: translateY(-1px);
+}
+</style>
+
+<div class="hashtag-wrap">
+
+    <div style="margin-bottom:20px;">
+        <a href="{{ url_for('main.explore') }}"
+           style="color:var(--muted);font-size:14px;font-weight:600;text-decoration:none;">
+            ← Explore
+        </a>
+    </div>
+
+    <!-- Hero -->
+    <div class="hashtag-hero">
+        <h1>#{{ tag }}</h1>
+        <p>{{ posts | length }} post{{ 's' if posts | length != 1 }}</p>
+    </div>
+
+    <!-- Related tags -->
+    {% if related %}
+    <div style="margin-bottom:20px;">
+        <div style="font-size:13px;font-weight:800;color:var(--muted);
+                    text-transform:uppercase;letter-spacing:0.6px;margin-bottom:10px;">
+            Related Tags
+        </div>
+        <div class="related-tags">
+            {% for t in related %}
+            <a href="{{ url_for('main.hashtag', tag=t) }}" class="related-tag">#{{ t }}</a>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Posts -->
+    {% if posts %}
+        {% for post in posts %}
+        <article style="background:var(--surface);border:1.5px solid var(--border);
+                        border-radius:20px;overflow:hidden;
+                        box-shadow:0 2px 14px var(--shadow);
+                        transition:box-shadow 0.25s,transform 0.25s;
+                        margin-bottom:18px;"
+                 onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 8px 32px var(--shadow-md)'"
+                 onmouseout="this.style.transform='';this.style.boxShadow='0 2px 14px var(--shadow)'">
+
+            <div style="display:flex;align-items:center;gap:12px;padding:16px 20px 12px;">
+                {% if post.author.profile_pic and post.author.profile_pic != 'default.jpg' %}
+                    <img src="{{ url_for('static', filename='uploads/' + post.author.profile_pic) }}"
+                         style="width:44px;height:44px;border-radius:50%;object-fit:cover;
+                                border:2.5px solid var(--pink);box-shadow:0 0 0 3px var(--pink-soft);flex-shrink:0;">
+                {% else %}
+                    <img src="{{ url_for('static', filename='img/default_avatar.svg') }}"
+                         style="width:44px;height:44px;border-radius:50%;object-fit:cover;
+                                border:2.5px solid var(--pink);box-shadow:0 0 0 3px var(--pink-soft);flex-shrink:0;">
+                {% endif %}
+                <div style="flex:1;">
+                    <div style="font-weight:800;font-size:15px;">
+                        <a href="{{ url_for('main.profile', username=post.author.username) }}"
+                           style="color:var(--text);text-decoration:none;">
+                            {{ post.author.display_name or post.author.username }}
+                        </a>
+                    </div>
+                    <div style="font-size:12px;color:var(--muted);font-weight:500;margin-top:2px;">
+                        {{ post.timestamp.strftime('%b %d, %Y · %H:%M') }}
+                    </div>
+                </div>
+            </div>
+
+            {% if post.image %}
+            <div style="width:100%;overflow:hidden;">
+                <img src="{{ url_for('static', filename='uploads/' + post.image) }}"
+                     style="width:100%;max-height:400px;object-fit:cover;display:block;">
+            </div>
+            {% endif %}
+
+            {% if post.content %}
+            <div style="padding:0 20px 14px;font-size:15px;line-height:1.75;
+                        color:var(--text);font-weight:500;white-space:pre-wrap;word-break:break-word;">
+                {{ post.content | render_content | safe }}
+            </div>
+            {% endif %}
+
+            <div style="display:flex;align-items:center;gap:6px;
+                        padding:12px 20px 14px;border-top:1px solid var(--border);">
+                {% if current_user.has_liked(post) %}
+                    <a href="{{ url_for('main.unlike_post', post_id=post.id) }}"
+                       style="display:inline-flex;align-items:center;gap:6px;padding:8px 15px;
+                              border-radius:99px;font-size:13px;font-weight:700;
+                              background:var(--pink-soft);color:var(--pink);
+                              border:1.5px solid var(--pink);text-decoration:none;">
+                        ❤️ {{ post.likes | length }}
+                    </a>
+                {% else %}
+                    <a href="{{ url_for('main.like_post', post_id=post.id) }}"
+                       style="display:inline-flex;align-items:center;gap:6px;padding:8px 15px;
+                              border-radius:99px;font-size:13px;font-weight:700;
+                              color:var(--muted);border:1.5px solid transparent;
+                              text-decoration:none;transition:all 0.2s;"
+                       onmouseover="this.style.background='var(--pink-soft)';this.style.color='var(--pink)'"
+                       onmouseout="this.style.background='';this.style.color='var(--muted)'">
+                        🤍 {{ post.likes | length }}
+                    </a>
+                {% endif %}
+                <a href="{{ url_for('main.comment_post', post_id=post.id) }}"
+                   style="display:inline-flex;align-items:center;gap:6px;padding:8px 15px;
+                          border-radius:99px;font-size:13px;font-weight:700;
+                          color:var(--muted);text-decoration:none;transition:all 0.2s;"
+                   onmouseover="this.style.background='var(--blue-soft)';this.style.color='var(--blue)'"
+                   onmouseout="this.style.background='';this.style.color='var(--muted)'">
+                    💬 {{ post.comments | length }}
+                </a>
+            </div>
+        </article>
+        {% endfor %}
+    {% else %}
+        <div class="empty-state">
+            <div class="emoji">🏷️</div>
+            <p>No posts with #{{ tag }} yet. Be the first!</p>
+        </div>
+    {% endif %}
+
+</div>
+
+{% endblock %}

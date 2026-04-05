@@ -1,0 +1,1542 @@
+{% extends "base.html" %}
+{% block content %}
+
+<style>
+.feed-wrapper {
+    display: grid;
+    grid-template-columns: 240px 1fr 280px;
+    gap: 28px;
+    align-items: start;
+}
+@media (max-width: 1100px) {
+    .feed-wrapper { grid-template-columns: 1fr; }
+    .feed-sidebar, .feed-right { display: none; }
+}
+.feed-sidebar { position: sticky; top: calc(var(--nav-h) + 20px); }
+.sidebar-profile-card {
+    background: var(--surface); border: 1.5px solid var(--border);
+    border-radius: 20px; padding: 24px 20px; text-align: center;
+    margin-bottom: 14px; box-shadow: 0 4px 20px var(--shadow);
+    position: relative; overflow: hidden;
+}
+.sidebar-profile-card::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0;
+    height: 60px; background: linear-gradient(135deg, var(--purple), var(--pink));
+    opacity: 0.15;
+}
+.sidebar-avatar {
+    width: 64px; height: 64px; border-radius: 50%; object-fit: cover;
+    border: 3px solid var(--pink); box-shadow: 0 0 0 4px var(--pink-soft);
+    position: relative; z-index: 1; margin-bottom: 10px;
+}
+.sidebar-username {
+    font-family: 'Playfair Display', serif; font-size: 17px; font-weight: 700;
+    color: var(--text); margin-bottom: 4px;
+}
+.sidebar-bio { font-size: 12px; color: var(--muted); font-weight: 500; line-height: 1.5; }
+.sidebar-nav {
+    background: var(--surface); border: 1.5px solid var(--border);
+    border-radius: 20px; padding: 14px; box-shadow: 0 2px 14px var(--shadow);
+}
+.sidebar-nav a {
+    display: flex; align-items: center; gap: 12px;
+    padding: 11px 14px; border-radius: 12px; font-size: 14px; font-weight: 700;
+    color: var(--muted); text-decoration: none; transition: all 0.2s; margin-bottom: 2px;
+}
+.sidebar-nav a:hover, .sidebar-nav a.active { background: var(--purple-soft); color: var(--purple); }
+.sidebar-nav a .nav-icon {
+    width: 32px; height: 32px; border-radius: 10px; background: var(--surface2);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; transition: all 0.2s; flex-shrink: 0;
+}
+.sidebar-nav a:hover .nav-icon, .sidebar-nav a.active .nav-icon { background: var(--purple-soft); }
+
+.compose-card {
+    background: var(--surface); border: 1.5px solid var(--border);
+    border-radius: 20px; padding: 20px 22px;
+    box-shadow: 0 4px 20px var(--shadow); margin-bottom: 20px;
+    transition: box-shadow 0.2s, border-color 0.2s;
+}
+.compose-card:focus-within { box-shadow: 0 6px 28px var(--shadow-md); border-color: var(--purple); }
+.compose-top { display: flex; gap: 12px; align-items: flex-start; }
+.compose-textarea {
+    flex: 1; border: none; background: transparent;
+    font-size: 15px; font-weight: 500; color: var(--text);
+    resize: none; min-height: 60px; font-family: 'Nunito', sans-serif; line-height: 1.6;
+}
+.compose-textarea:focus { outline: none; box-shadow: none; }
+.compose-divider { height: 1px; background: var(--border); margin: 14px 0; }
+.compose-actions { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.compose-tools { display: flex; gap: 8px; }
+.compose-tool-btn {
+    padding: 7px 13px; border-radius: 99px; background: var(--surface2);
+    border: 1.5px solid var(--border); color: var(--muted); font-size: 13px;
+    font-weight: 700; cursor: pointer; font-family: 'Nunito', sans-serif;
+    transition: all 0.2s; display: flex; align-items: center; gap: 5px;
+}
+.compose-tool-btn:hover { background: var(--purple-soft); border-color: var(--purple); color: var(--purple); }
+
+.photo-panel, .poll-panel {
+    display: none; background: var(--surface2); border: 1.5px solid var(--border);
+    border-radius: 14px; padding: 16px; margin-top: 14px;
+    animation: slideDown 0.25s ease;
+}
+@keyframes slideDown {
+    from { opacity: 0; transform: translateY(-8px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Post card */
+.post-card-v2 {
+    background: var(--surface); border: 1.5px solid var(--border);
+    border-radius: 20px; overflow: hidden;
+    box-shadow: 0 2px 14px var(--shadow);
+    transition: box-shadow 0.25s, transform 0.25s; margin-bottom: 18px;
+}
+.post-card-v2:hover { box-shadow: 0 8px 32px var(--shadow-md); transform: translateY(-2px); }
+.post-card-header { display: flex; align-items: center; gap: 12px; padding: 16px 20px 12px; }
+.post-card-header img {
+    width: 44px; height: 44px; border-radius: 50%; object-fit: cover;
+    border: 2.5px solid var(--pink); box-shadow: 0 0 0 3px var(--pink-soft); flex-shrink: 0;
+}
+.post-card-header .info { flex: 1; }
+.post-card-header .uname { font-weight: 800; font-size: 15px; }
+.post-card-header .uname a { color: var(--text); text-decoration: none; }
+.post-card-header .uname a:hover { color: var(--purple); }
+.post-card-header .meta-row { display: flex; align-items: center; gap: 8px; margin-top: 2px; }
+.post-card-header .time { font-size: 12px; color: var(--muted); font-weight: 500; }
+.privacy-badge {
+    font-size: 11px; color: var(--muted); background: var(--surface2);
+    border: 1px solid var(--border); border-radius: 99px; padding: 1px 8px; font-weight: 700;
+}
+.post-body-v2 {
+    padding: 0 20px 14px; font-size: 15px; line-height: 1.75;
+    color: var(--text); font-weight: 500; white-space: pre-wrap; word-break: break-word;
+}
+.post-image-wrap { width: 100%; overflow: hidden; position: relative; }
+.post-image-wrap img {
+    width: 100%; max-height: 500px; object-fit: cover; display: block; transition: transform 0.4s;
+}
+.post-card-v2:hover .post-image-wrap img { transform: scale(1.01); }
+
+/* Sensitive overlay */
+.sensitive-overlay {
+    position: absolute; inset: 0; z-index: 10;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    background: rgba(0,0,0,0.65);
+    backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+    cursor: pointer;
+}
+.sensitive-overlay:hover { background: rgba(0,0,0,0.7); }
+
+.post-footer {
+    display: flex; align-items: center; gap: 6px;
+    padding: 12px 20px 14px; border-top: 1px solid var(--border); flex-wrap: wrap;
+}
+.post-action {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 8px 15px; border-radius: 99px; font-size: 13px; font-weight: 700;
+    color: var(--muted); background: transparent; border: 1.5px solid transparent;
+    cursor: pointer; text-decoration: none; transition: all 0.2s;
+    font-family: 'Nunito', sans-serif;
+}
+.post-action:hover { background: var(--surface2); color: var(--text); }
+.post-action.like-btn:hover, .post-action.reacted {
+    background: var(--pink-soft); color: var(--pink); border-color: var(--pink);
+}
+.post-action.comment-btn:hover { background: var(--blue-soft); color: var(--blue); border-color: var(--blue); }
+.post-action.edit-btn:hover { background: var(--purple-soft); color: var(--purple); border-color: var(--purple); }
+.post-action.delete-btn:hover { background: rgba(217,95,122,0.1); color: #d95f7a; border-color: #f5b8c6; }
+
+/* Reaction picker */
+.reaction-wrap { position: relative; display: inline-block; }
+.reaction-picker {
+    position: absolute; bottom: 48px; left: 0;
+    background: var(--surface); border: 1.5px solid var(--border);
+    border-radius: 99px; padding: 8px 12px;
+    display: none; gap: 6px;
+    box-shadow: 0 8px 24px var(--shadow-md);
+    z-index: 100; white-space: nowrap;
+}
+.reaction-picker.open { display: flex; animation: popUp 0.2s ease; }
+@keyframes popUp {
+    from { opacity: 0; transform: translateY(8px) scale(0.9); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+.reaction-emoji { font-size: 22px; text-decoration: none; transition: transform 0.15s; cursor: pointer; display: inline-block; }
+.reaction-emoji:hover { transform: scale(1.4); }
+
+/* Post ··· menu */
+.post-more-wrap { position: relative; display: inline-block; margin-left: auto; }
+.post-more-menu {
+    display: none; position: absolute; bottom: 44px; right: 0;
+    background: var(--surface); border: 1.5px solid var(--border);
+    border-radius: 14px; padding: 8px; z-index: 100;
+    box-shadow: 0 8px 24px var(--shadow-md); min-width: 170px; white-space: nowrap;
+}
+.post-more-menu.open { display: block; animation: popUp 0.18s ease; }
+.post-more-item {
+    display: block; padding: 9px 12px; border-radius: 8px;
+    font-size: 13px; font-weight: 700; text-decoration: none;
+    transition: background 0.2s; cursor: pointer; color: var(--muted);
+    background: none; border: none; font-family: 'Nunito', sans-serif;
+    width: 100%; text-align: left;
+}
+.post-more-item:hover { background: var(--surface2); color: var(--text); }
+.post-more-item.danger { color: #d95f7a; }
+.post-more-item.danger:hover { background: rgba(217,95,122,0.1); color: #d95f7a; }
+
+/* Right panel */
+.feed-right {
+    position: sticky; top: calc(var(--nav-h) + 20px);
+    display: flex; flex-direction: column; gap: 18px;
+}
+.right-card {
+    background: var(--surface); border: 1.5px solid var(--border);
+    border-radius: 20px; padding: 18px 20px; box-shadow: 0 2px 14px var(--shadow);
+}
+.right-card-title {
+    font-size: 13px; font-weight: 800; color: var(--text); margin-bottom: 14px;
+    display: flex; align-items: center; gap: 7px;
+    text-transform: uppercase; letter-spacing: 0.6px;
+}
+.trending-card {
+    display: flex; gap: 10px; align-items: flex-start;
+    padding: 10px 0; border-bottom: 1px solid var(--border);
+    text-decoration: none; transition: all 0.2s;
+}
+.trending-card:last-child { border-bottom: none; }
+.trending-card:hover { opacity: 0.8; }
+.trending-rank {
+    font-size: 20px; font-weight: 900;
+    background: linear-gradient(135deg, var(--purple), var(--pink));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text; line-height: 1; flex-shrink: 0; width: 24px; text-align: center; margin-top: 2px;
+}
+.trending-info { flex: 1; min-width: 0; }
+.trending-author { font-size: 12px; font-weight: 700; color: var(--purple); margin-bottom: 3px; }
+.trending-text { font-size: 13px; font-weight: 500; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.trending-likes { font-size: 11px; color: var(--muted); font-weight: 600; margin-top: 4px; }
+.trending-thumb { width: 44px; height: 44px; border-radius: 8px; object-fit: cover; flex-shrink: 0; border: 1.5px solid var(--border); }
+.active-stack { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.active-avatar-wrap { position: relative; display: inline-block; text-decoration: none; }
+.active-avatar-wrap img {
+    width: 44px; height: 44px; border-radius: 50%; object-fit: cover;
+    border: 2.5px solid var(--surface); box-shadow: 0 0 0 2px var(--pink);
+    display: block; transition: transform 0.2s;
+}
+.active-avatar-wrap:hover img { transform: scale(1.1); }
+.active-dot {
+    position: absolute; bottom: 1px; right: 1px;
+    width: 11px; height: 11px; border-radius: 50%;
+    background: #5cc97a; border: 2px solid var(--surface);
+    animation: pulse 2s infinite;
+}
+@keyframes pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(92,201,122,0.5); }
+    50% { box-shadow: 0 0 0 4px rgba(92,201,122,0); }
+}
+.active-username {
+    font-size: 10px; color: var(--muted); font-weight: 600;
+    text-align: center; margin-top: 4px; max-width: 44px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.thought-card {
+    background: var(--surface2); border: 1.5px solid var(--border);
+    border-radius: 14px; padding: 14px; margin-top: 4px;
+}
+.thought-author { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+.thought-author img { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; border: 2px solid var(--pink); }
+.thought-author .name { font-size: 13px; font-weight: 800; color: var(--text); }
+.thought-text {
+    font-size: 13px; color: var(--muted); font-weight: 500;
+    line-height: 1.6; margin-bottom: 12px;
+    display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+}
+.thought-img { width: 100%; max-height: 120px; object-fit: cover; border-radius: 10px; margin-bottom: 12px; border: 1px solid var(--border); }
+</style>
+
+<div class="feed-wrapper">
+
+    <!-- SIDEBAR -->
+    <aside class="feed-sidebar">
+        <div class="sidebar-profile-card">
+            {% if current_user.profile_pic and current_user.profile_pic != 'default.jpg' %}
+                <img src="{{ url_for('static', filename='uploads/' + current_user.profile_pic) }}" class="sidebar-avatar">
+            {% else %}
+                <img src="{{ url_for('static', filename='img/default_avatar.svg') }}" class="sidebar-avatar">
+            {% endif %}
+            <div class="sidebar-username">{{ current_user.display_name or current_user.username }}</div>
+            <div class="sidebar-bio">{{ current_user.bio or 'No bio yet — add one!' }}</div>
+        </div>
+        <div class="sidebar-nav">
+            <a href="{{ url_for('main.home') }}" class="active"><span class="nav-icon">🏠</span> Feed</a>
+            <a href="{{ url_for('main.profile', username=current_user.username) }}"><span class="nav-icon">👤</span> Profile</a>
+            <a href="{{ url_for('main.inbox') }}"><span class="nav-icon">💬</span> Messages</a>
+            <a href="{{ url_for('main.activity') }}"><span class="nav-icon">⚡</span> Activity</a>
+            <a href="{{ url_for('main.edit_profile') }}"><span class="nav-icon">✏️</span> Edit Profile</a>
+            <a href="{{ url_for('main.my_capsules') }}"><span class="nav-icon">🔒</span> Capsules</a>
+            <a href="{{ url_for('main.settings') }}"><span class="nav-icon">⚙️</span> Settings</a>
+        </div>
+    </aside>
+
+    <!-- MAIN FEED -->
+    <main>
+
+        <!-- STORY BAR -->
+        <div style="background:var(--surface); border:1.5px solid var(--border);
+                    border-radius:20px; padding:16px 20px; margin-bottom:20px;
+                    box-shadow:0 2px 14px var(--shadow); overflow-x:auto;">
+            <div style="display:flex; gap:16px; align-items:flex-start; min-width:max-content;">
+                {% for su in story_users %}
+                <div style="text-align:center; flex-shrink:0;">
+                    {% if su.is_me %}
+                        {% if su.stories %}
+                            <a href="{{ url_for('main.view_story', user_id=current_user.id) }}"
+                               style="display:block;text-decoration:none;position:relative;">
+                        {% else %}
+                            <a href="{{ url_for('main.create_story') }}"
+                               style="display:block;text-decoration:none;position:relative;">
+                        {% endif %}
+                            <div style="width:60px;height:60px;border-radius:50%;
+                                        border:{% if su.stories %}3px solid var(--purple){% else %}3px dashed var(--purple){% endif %};
+                                        display:flex;align-items:center;justify-content:center;
+                                        background:var(--surface2);position:relative;">
+                                {% if current_user.profile_pic and current_user.profile_pic != 'default.jpg' %}
+                                    <img src="{{ url_for('static', filename='uploads/' + current_user.profile_pic) }}"
+                                         style="width:54px;height:54px;border-radius:50%;object-fit:cover;">
+                                {% else %}
+                                    <img src="{{ url_for('static', filename='img/default_avatar.svg') }}"
+                                         style="width:54px;height:54px;border-radius:50%;object-fit:cover;">
+                                {% endif %}
+                                <span style="position:absolute;bottom:-2px;right:-2px;
+                                             width:20px;height:20px;border-radius:50%;
+                                             background:var(--purple);color:white;
+                                             font-size:14px;font-weight:900;
+                                             display:flex;align-items:center;justify-content:center;
+                                             border:2px solid var(--surface);">+</span>
+                            </div>
+                        </a>
+                        <div style="font-size:11px;color:var(--muted);font-weight:600;
+                                    margin-top:6px;max-width:60px;overflow:hidden;
+                                    text-overflow:ellipsis;white-space:nowrap;">
+                            {% if su.stories %}My Story{% else %}Add Story{% endif %}
+                        </div>
+                    {% else %}
+                        <a href="{{ url_for('main.view_story', user_id=su.user.id) }}"
+                           style="display:block;text-decoration:none;">
+                            <div style="width:60px;height:60px;border-radius:50%;padding:2px;
+                                        background:{% if su.has_unseen %}linear-gradient(135deg,var(--purple),var(--pink)){% else %}var(--border){% endif %};">
+                                <div style="width:100%;height:100%;border-radius:50%;
+                                            border:2px solid var(--surface);overflow:hidden;">
+                                    {% if su.user.profile_pic and su.user.profile_pic != 'default.jpg' %}
+                                        <img src="{{ url_for('static', filename='uploads/' + su.user.profile_pic) }}"
+                                             style="width:100%;height:100%;object-fit:cover;">
+                                    {% else %}
+                                        <img src="{{ url_for('static', filename='img/default_avatar.svg') }}"
+                                             style="width:100%;height:100%;object-fit:cover;">
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </a>
+                        <div style="font-size:11px;
+                                    color:{% if su.has_unseen %}var(--text){% else %}var(--muted){% endif %};
+                                    font-weight:{% if su.has_unseen %}700{% else %}500{% endif %};
+                                    margin-top:6px;max-width:60px;overflow:hidden;
+                                    text-overflow:ellipsis;white-space:nowrap;text-align:center;">
+                            {{ su.user.username }}
+                        </div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- FEED TABS -->
+        <div style="display:flex;border-bottom:2px solid var(--border);margin-bottom:20px;">
+            <button onclick="switchFeedTab('posts')" id="ftab-posts"
+                    style="flex:1;padding:12px;background:none;border:none;
+                           font-family:'Nunito',sans-serif;font-size:14px;font-weight:700;
+                           cursor:pointer;color:var(--purple);
+                           border-bottom:2px solid var(--purple);margin-bottom:-2px;transition:all 0.2s;">
+                📝 Posts
+            </button>
+            <button onclick="switchFeedTab('thoughts')" id="ftab-thoughts"
+                    style="flex:1;padding:12px;background:none;border:none;
+                           font-family:'Nunito',sans-serif;font-size:14px;font-weight:700;
+                           cursor:pointer;color:var(--muted);
+                           border-bottom:2px solid transparent;margin-bottom:-2px;transition:all 0.2s;">
+                💭 Thoughts
+            </button>
+        </div>
+
+        <!-- POSTS TAB -->
+        <div id="feed-posts">
+
+            <!-- COMPOSE -->
+            <div class="compose-card">
+                <form method="POST" action="{{ url_for('main.create_post') }}"
+                      enctype="multipart/form-data" id="postForm">
+                    <div class="compose-top">
+                        {% if current_user.profile_pic and current_user.profile_pic != 'default.jpg' %}
+                            <img src="{{ url_for('static', filename='uploads/' + current_user.profile_pic) }}"
+                                 style="width:42px;height:42px;border-radius:50%;object-fit:cover;border:2px solid var(--pink);flex-shrink:0;">
+                        {% else %}
+                            <img src="{{ url_for('static', filename='img/default_avatar.svg') }}"
+                                 style="width:42px;height:42px;border-radius:50%;object-fit:cover;border:2px solid var(--pink);flex-shrink:0;">
+                        {% endif %}
+                        <textarea name="content" class="compose-textarea" id="postContent"
+                                  placeholder="What's on your mind, {{ current_user.username }}? ✨"
+                                  rows="2"
+                                  oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'"></textarea>
+                                
+
+                    </div>
+
+                    <!-- Photo Panel -->
+                    <div class="photo-panel" id="photoPanel">
+                        <div style="position:relative;margin-bottom:14px;">
+                            <img id="previewImg" style="width:100%;max-height:300px;border-radius:10px;object-fit:cover;border:1.5px solid var(--border);display:none;">
+                            <button type="button" onclick="removeImage()"
+                                    style="position:absolute;top:8px;right:8px;background:rgba(0,0,0,0.6);color:white;border:none;border-radius:50%;width:28px;height:28px;cursor:pointer;font-size:14px;display:none;"
+                                    id="removeImgBtn">✕</button>
+                        </div>
+                        <input type="text" name="caption" id="captionInput" placeholder="Write a caption…"
+                               style="width:100%;border-radius:10px;padding:10px 14px;font-size:14px;margin-bottom:10px;">
+
+                        <!-- Privacy toggle -->
+                        <div style="display:flex;align-items:center;justify-content:space-between;
+                                    padding:10px 14px;background:var(--surface);
+                                    border:1.5px solid var(--border);border-radius:10px;margin-bottom:8px;">
+                            <div>
+                                <div style="font-size:14px;font-weight:700;color:var(--text);" id="privacyLabel">🌍 Public</div>
+                                <div style="font-size:12px;color:var(--muted);margin-top:2px;" id="privacyDesc">Everyone can see this post</div>
+                            </div>
+                            <div onclick="togglePrivacy()" style="cursor:pointer;position:relative;width:48px;height:26px;">
+                                <div id="toggleTrack" style="width:48px;height:26px;border-radius:99px;background:var(--border);transition:background 0.3s;"></div>
+                                <div id="toggleThumb" style="position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:white;box-shadow:0 1px 4px rgba(0,0,0,0.2);transition:left 0.3s;"></div>
+                            </div>
+                        </div>
+
+                        <!-- Sensitive content toggle -->
+                        <div style="display:flex;align-items:center;justify-content:space-between;
+                                    padding:10px 14px;background:var(--surface);
+                                    border:1.5px solid var(--border);border-radius:10px;">
+                            <div>
+                                <div style="font-size:14px;font-weight:700;color:var(--text);" id="sensitiveLabel">✅ Safe Content</div>
+                                <div style="font-size:12px;color:var(--muted);margin-top:2px;" id="sensitiveDesc">No content warning needed</div>
+                            </div>
+                            <div onclick="toggleSensitive()" style="cursor:pointer;position:relative;width:48px;height:26px;">
+                                <div id="sensitiveTrack" style="width:48px;height:26px;border-radius:99px;background:var(--border);transition:background 0.3s;"></div>
+                                <div id="sensitiveThumb" style="position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:white;box-shadow:0 1px 4px rgba(0,0,0,0.2);transition:left 0.3s;"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Poll Panel -->
+                    <div class="poll-panel" id="pollPanel">
+                        <div style="font-size:13px;font-weight:800;color:var(--text);margin-bottom:12px;">📊 Poll Options</div>
+                        <div id="pollOptions">
+                            <input type="text" name="poll_options[]" placeholder="Option 1"
+                                   style="width:100%;border-radius:10px;padding:9px 14px;font-size:14px;margin-bottom:8px;">
+                            <input type="text" name="poll_options[]" placeholder="Option 2"
+                                   style="width:100%;border-radius:10px;padding:9px 14px;font-size:14px;margin-bottom:8px;">
+                        </div>
+                        <button type="button" onclick="addPollOption()"
+                                style="font-size:13px;font-weight:700;color:var(--purple);background:none;border:none;cursor:pointer;padding:0;">
+                            + Add Option
+                        </button>
+                    </div>
+
+                    <input type="file" name="image" id="imageInput" accept="image/*" style="display:none;" onchange="previewImage(this)">
+                    <input type="hidden" name="is_private" id="isPrivate" value="0">
+                    <input type="hidden" name="is_sensitive" id="isSensitive" value="0">
+
+                    <div class="compose-divider"></div>
+
+<!-- Hashtag suggestions strip -->
+<div id="hashtagStrip" style="display:none;margin-bottom:12px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+        <span style="font-size:12px;font-weight:700;color:var(--muted);
+                     text-transform:uppercase;letter-spacing:.5px;">
+            🏷️ Suggested Hashtags
+        </span>
+        <button type="button" onclick="closeHashtagStrip()"
+                style="background:none;border:none;cursor:pointer;
+                       color:var(--muted);font-size:14px;padding:0 4px;">✕</button>
+    </div>
+    <div id="hashtagChips" style="display:flex;flex-wrap:wrap;gap:6px;">
+        <span style="font-size:13px;color:var(--muted);font-style:italic;">
+            Write something first, then click 🏷️ Hashtags
+        </span>
+    </div>
+</div>
+
+<div class="compose-actions">
+                        <div class="compose-tools">
+                            <button type="button" class="compose-tool-btn" onclick="document.getElementById('imageInput').click()">📷 Photo</button>
+                            <button type="button" class="compose-tool-btn" onclick="togglePollBox()">📊 Poll</button>
+                            <button type="button" class="compose-tool-btn" onclick="openIdeasModal()">💡 Ideas</button>
+                            <button type="button" class="compose-tool-btn" onclick="loadHashtags()" id="hashtagBtn">🏷️ Hashtags</button>
+                        </div>
+                        <button type="submit" class="btn" style="padding:10px 24px;">Post ✦</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- POSTS -->
+            {% for post in posts.items %}
+            <article class="post-card-v2">
+                <div class="post-card-header">
+                    {% if post.author.profile_pic and post.author.profile_pic != 'default.jpg' %}
+                        <img src="{{ url_for('static', filename='uploads/' + post.author.profile_pic) }}" alt="{{ post.author.username }}">
+                    {% else %}
+                        <img src="{{ url_for('static', filename='img/default_avatar.svg') }}" alt="{{ post.author.username }}">
+                    {% endif %}
+                    <div class="info">
+                        <div class="uname">
+                            <a href="{{ url_for('main.profile', username=post.author.username) }}">
+                                {{ post.author.display_name or post.author.username }}
+                            </a>
+                        </div>
+                        <div class="meta-row">
+                            <span class="time">{{ post.timestamp.strftime('%b %d, %Y · %H:%M') }}</span>
+                            {% if post.is_private %}<span class="privacy-badge">🔒 Private</span>{% endif %}
+                            {% if post.is_sensitive %}<span class="privacy-badge" style="color:#e84855;border-color:rgba(232,72,85,0.3);background:rgba(232,72,85,0.08);">⚠️ Sensitive</span>{% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Post image with sensitive overlay -->
+                {% if post.image %}
+                <div class="post-image-wrap">
+                    {% if post.is_sensitive %}
+                    <div class="sensitive-overlay" id="sensitive-{{ post.id }}"
+                         onclick="revealSensitive({{ post.id }})">
+                        <div style="font-size:28px;margin-bottom:8px;">⚠️</div>
+                        <div style="color:white;font-weight:800;font-size:14px;margin-bottom:4px;">Sensitive Content</div>
+                        <div style="color:rgba(255,255,255,0.75);font-size:12px;text-align:center;max-width:200px;line-height:1.5;">
+                            Tap to view
+                        </div>
+                    </div>
+                    {% endif %}
+                    <img src="{{ url_for('static', filename='uploads/' + post.image) }}"
+                         id="img-{{ post.id }}"
+                         alt="post image"
+                         style="{% if post.is_sensitive %}filter:blur(16px);{% endif %}">
+                </div>
+                {% endif %}
+
+                <!-- Post content with sensitive overlay for text-only -->
+                {% if post.content %}
+                {% if post.is_sensitive and not post.image %}
+                <div style="position:relative;padding:0 20px 14px;">
+                    <div id="sensitive-text-{{ post.id }}"
+                         style="position:absolute;inset:0;z-index:10;margin:0 20px;
+                                display:flex;align-items:center;justify-content:center;
+                                background:var(--surface2);border-radius:8px;cursor:pointer;"
+                         onclick="revealSensitiveText({{ post.id }})">
+                        <div style="text-align:center;padding:16px;">
+                            <div style="font-size:20px;margin-bottom:6px;">⚠️</div>
+                            <div style="font-weight:700;font-size:13px;color:var(--text);">Sensitive Content</div>
+                            <div style="font-size:12px;color:var(--muted);font-weight:500;margin-top:3px;">Tap to reveal</div>
+                        </div>
+                    </div>
+                    <div id="text-{{ post.id }}" style="filter:blur(5px);pointer-events:none;user-select:none;">
+                        <div class="post-body-v2">{{ post.content | render_content | safe }}</div>
+                    </div>
+                </div>
+                {% else %}
+                <div class="post-body-v2">{{ post.content | render_content | safe }}</div>
+                {% endif %}
+                {% endif %}
+
+                <!-- Poll -->
+                {% if post.poll %}
+                {% set user_vote = namespace(found=false) %}
+                {% for opt in post.poll.options %}
+                    {% for v in opt.votes %}
+                        {% if v.user_id == current_user.id %}{% set user_vote.found = true %}{% endif %}
+                    {% endfor %}
+                {% endfor %}
+                <div style="padding:0 20px 14px;" data-poll-id="{{ post.poll.id }}">
+                    <div class="poll-options">
+                        {% for option in post.poll.options %}
+                            {% set vote_count = option.votes | length %}
+                            {% set total = post.poll.options | map(attribute='votes') | map('length') | sum %}
+                            {% set pct = ((vote_count / total * 100) | round | int) if total > 0 else 0 %}
+                            {% if user_vote.found %}
+                            <div style="margin-bottom:8px;">
+                                <div style="display:flex;justify-content:space-between;font-size:13px;font-weight:600;margin-bottom:4px;">
+                                    <span>{{ option.text }}</span>
+                                    <span style="color:var(--purple);">{{ pct }}%</span>
+                                </div>
+                                <div style="height:8px;background:var(--surface2);border-radius:99px;overflow:hidden;">
+                                    <div style="height:100%;width:{{ pct }}%;background:linear-gradient(135deg,var(--purple),var(--pink));border-radius:99px;transition:width 0.5s;"></div>
+                                </div>
+                            </div>
+                            {% else %}
+                            <button class="poll-option-btn" data-option-id="{{ option.id }}"
+                                    style="display:block;width:100%;text-align:left;
+                                           padding:9px 14px;margin-bottom:6px;
+                                           background:var(--surface2);border:1.5px solid var(--border);
+                                           border-radius:10px;font-size:13px;font-weight:600;
+                                           color:var(--text);cursor:pointer;transition:all 0.2s;
+                                           font-family:'Nunito',sans-serif;"
+                                    onmouseover="this.style.borderColor='var(--purple)';this.style.background='var(--purple-soft)'"
+                                    onmouseout="this.style.borderColor='var(--border)';this.style.background='var(--surface2)'">
+                                {{ option.text }}
+                            </button>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                    <div class="poll-total" style="font-size:11px;color:var(--muted);font-weight:600;margin-top:4px;">
+                        {{ post.poll.options | map(attribute='votes') | map('length') | sum }} votes
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Post Footer -->
+                <div class="post-footer">
+                    {% set my_reaction = current_user.get_reaction(post) %}
+                    <div class="reaction-wrap" data-react-post="{{ post.id }}">
+                        <button type="button"
+                                class="post-action like-btn reaction-btn {% if my_reaction %}reacted{% endif %}">
+                            {{ my_reaction.emoji if my_reaction else '🤍' }} {{ post.reactions | length }}
+                        </button>
+                        <div class="reaction-picker">
+                            <span class="reaction-emoji">❤️</span>
+                            <span class="reaction-emoji">😂</span>
+                            <span class="reaction-emoji">😮</span>
+                            <span class="reaction-emoji">😢</span>
+                            <span class="reaction-emoji">😡</span>
+                            <span class="reaction-emoji">👏</span>
+                        </div>
+                    </div>
+
+                    <a href="{{ url_for('main.comment_post', post_id=post.id) }}" class="post-action comment-btn">💬 {{ post.comments | length }}</a>
+<button type="button" class="post-action"
+        onclick="openShareModal({{ post.id }}, '{{ (post.content or 'Check out this post') | truncate(80, true, '...') | replace("'", "\\'") }}', '{{ post.author.username }}')"
+        style="margin-left:auto;">
+    📤 Share
+</button>
+
+                    {% if post.author == current_user %}
+                        <a href="{{ url_for('main.edit_post', post_id=post.id) }}" class="post-action edit-btn">✏️</a>
+                        <a href="{{ url_for('main.delete_post', post_id=post.id) }}" class="post-action delete-btn"
+                           onclick="return confirm('Delete this post?')">🗑</a>
+                    {% endif %}
+
+                    <!-- ··· More Menu -->
+                    <div class="post-more-wrap" id="more-wrap-{{ post.id }}">
+                        <button type="button" class="post-action"
+                                onclick="togglePostMenu({{ post.id }})"
+                                style="padding:8px 12px;">···</button>
+                        <div class="post-more-menu" id="more-menu-{{ post.id }}">
+                            {% if post.author != current_user %}
+                            <a href="{{ url_for('main.report_post', post_id=post.id) }}" class="post-more-item danger">🚩 Report Post</a>
+                            <a href="{{ url_for('main.report_user', username=post.author.username) }}" class="post-more-item danger">🚩 Report @{{ post.author.username }}</a>
+                            <hr style="border:none;border-top:1px solid var(--border);margin:4px 0;">
+                            <form method="POST" action="{{ url_for('main.mute_user', username=post.author.username) }}" style="margin:0;">
+                                <button type="submit" class="post-more-item">🔕 Mute @{{ post.author.username }}</button>
+                            </form>
+                            <hr style="border:none;border-top:1px solid var(--border);margin:4px 0;">
+                            {% endif %}
+                            <button type="button" class="post-more-item"
+                                    onclick="navigator.clipboard.writeText(window.location.origin + '{{ url_for('main.comment_post', post_id=post.id) }}'); this.textContent='✓ Copied!'; setTimeout(()=>this.textContent='🔗 Copy Link',2000);">
+                                🔗 Copy Link
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </article>
+            {% else %}
+            <div class="empty-state">
+                <div class="emoji">🌸</div>
+                <p>No posts yet — follow some people or create your first post!</p>
+            </div>
+            {% endfor %}
+
+            {% if posts.has_prev or posts.has_next %}
+            <div class="pagination">
+                {% if posts.has_prev %}<a href="{{ url_for('main.home', page=posts.prev_num) }}">← Newer</a>{% endif %}
+                {% if posts.has_next %}<a href="{{ url_for('main.home', page=posts.next_num) }}">Older →</a>{% endif %}
+            </div>
+            {% endif %}
+
+        </div>
+        <!-- END POSTS TAB -->
+
+        <!-- THOUGHTS TAB -->
+        <div id="feed-thoughts" style="display:none;">
+            <div style="background:var(--surface);border:1.5px solid var(--border);
+                        border-radius:20px;padding:20px 22px;margin-bottom:20px;
+                        box-shadow:0 4px 20px var(--shadow);">
+                <form method="POST" action="{{ url_for('main.thoughts_page') }}">
+                    <textarea name="content"
+                              placeholder="What's on your mind? This disappears in 6 hours… 💭"
+                              style="width:100%;border:none;background:transparent;font-size:15px;
+                                     font-weight:500;color:var(--text);resize:none;min-height:80px;
+                                     font-family:'Nunito',sans-serif;line-height:1.6;"
+                              maxlength="280" id="thoughtInput"
+                              oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px';
+                                       document.getElementById('thoughtCount').textContent=this.value.length"></textarea>
+                    <div style="display:flex;align-items:center;justify-content:space-between;
+                                padding-top:12px;border-top:1px solid var(--border);margin-top:8px;">
+                        <span style="font-size:12px;color:var(--muted);font-weight:600;">
+                            <span id="thoughtCount">0</span>/280 · disappears in 6h
+                        </span>
+                        <button type="submit" class="btn" style="padding:9px 20px;">Share Thought</button>
+                    </div>
+                </form>
+            </div>
+
+            {% if thoughts %}
+                {% for thought in thoughts %}
+                <div style="background:var(--surface);border:1.5px solid var(--border);
+                            border-radius:20px;padding:20px 24px;margin-bottom:14px;
+                            box-shadow:0 2px 14px var(--shadow);position:relative;">
+                    {% set pct = ((thought.time_left_seconds() / 21600) * 100) | round | int %}
+                    <div style="position:absolute;top:0;left:0;right:0;height:3px;
+                                background:var(--border);border-radius:20px 20px 0 0;overflow:hidden;">
+                        <div style="height:100%;width:{{ pct }}%;background:linear-gradient(135deg,var(--purple),var(--pink));"></div>
+                    </div>
+                    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;">
+                        <div style="display:flex;align-items:center;gap:10px;">
+                            {% if thought.user_id == current_user.id %}
+                                {% if current_user.profile_pic and current_user.profile_pic != 'default.jpg' %}
+                                    <img src="{{ url_for('static', filename='uploads/' + current_user.profile_pic) }}"
+                                         style="width:36px;height:36px;border-radius:50%;object-fit:cover;border:2px solid var(--pink);">
+                                {% else %}
+                                    <img src="{{ url_for('static', filename='img/default_avatar.svg') }}"
+                                         style="width:36px;height:36px;border-radius:50%;object-fit:cover;border:2px solid var(--pink);">
+                                {% endif %}
+                                <span style="font-weight:700;font-size:14px;color:var(--purple);">You</span>
+                            {% else %}
+                                <div style="width:36px;height:36px;border-radius:50%;
+                                            background:linear-gradient(135deg,var(--purple),var(--pink));
+                                            display:flex;align-items:center;justify-content:center;
+                                            font-size:16px;color:white;font-weight:800;">
+                                    {{ thought.author.username[0].upper() }}
+                                </div>
+                                <span style="font-weight:700;font-size:14px;color:var(--muted);">Anonymous</span>
+                            {% endif %}
+                        </div>
+                        <div style="display:flex;align-items:center;gap:8px;">
+                            <span style="font-size:12px;color:var(--muted);font-weight:600;
+                                         background:var(--surface2);border:1px solid var(--border);
+                                         border-radius:99px;padding:3px 10px;">⏱ {{ thought.time_left() }}</span>
+                            {% if thought.user_id == current_user.id %}
+                            <a href="{{ url_for('main.delete_thought', thought_id=thought.id) }}"
+                               style="color:var(--muted);font-size:13px;text-decoration:none;
+                                      padding:4px 8px;border-radius:8px;transition:all 0.2s;"
+                               onmouseover="this.style.color='#d95f7a'"
+                               onmouseout="this.style.color='var(--muted)'"
+                               onclick="return confirm('Delete this thought?')">🗑</a>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <p style="font-size:15px;line-height:1.7;color:var(--text);font-weight:500;margin:0;">
+                        {{ thought.content }}
+                    </p>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="empty-state">
+                    <div class="emoji">💭</div>
+                    <p>No thoughts yet — share something raw and real!</p>
+                </div>
+            {% endif %}
+        </div>
+        <!-- END THOUGHTS TAB -->
+
+    </main>
+
+    <!-- RIGHT PANEL -->
+    <aside class="feed-right">
+        <div class="right-card">
+            <div class="right-card-title">🔥 Trending Now</div>
+            {% if trending %}
+                {% for post, like_count in trending %}
+                <a href="{{ url_for('main.comment_post', post_id=post.id) }}" class="trending-card">
+                    <div class="trending-rank">{{ loop.index }}</div>
+                    <div class="trending-info">
+                        <div class="trending-author">@{{ post.author.username }}</div>
+                        <div class="trending-text">{{ post.content or '📷 Photo post' }}</div>
+                        <div class="trending-likes">❤️ {{ like_count }} likes today</div>
+                    </div>
+                    {% if post.image and not post.is_sensitive %}
+                    <img src="{{ url_for('static', filename='uploads/' + post.image) }}" class="trending-thumb">
+                    {% endif %}
+                </a>
+                {% endfor %}
+            {% else %}
+                <div style="text-align:center;padding:16px 0;color:var(--muted);font-size:13px;font-weight:500;">No trending posts yet today 🌱</div>
+            {% endif %}
+        </div>
+
+        <div class="right-card">
+            <div class="right-card-title">🌙 Active Recently</div>
+            {% if recent_active %}
+            <div class="active-stack">
+                {% for u in recent_active %}
+                <div style="text-align:center;">
+                    <a href="{{ url_for('main.profile', username=u.username) }}" class="active-avatar-wrap">
+                        {% if u.profile_pic and u.profile_pic != 'default.jpg' %}
+                            <img src="{{ url_for('static', filename='uploads/' + u.profile_pic) }}" alt="{{ u.username }}">
+                        {% else %}
+                            <img src="{{ url_for('static', filename='img/default_avatar.svg') }}" alt="{{ u.username }}">
+                        {% endif %}
+                        <span class="active-dot"></span>
+                    </a>
+                    <div class="active-username">{{ u.username }}</div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+                <div style="text-align:center;padding:16px 0;color:var(--muted);font-size:13px;font-weight:500;">No one active recently 😴</div>
+            {% endif %}
+        </div>
+
+        <div class="right-card">
+            <div class="right-card-title">💭 Discover</div>
+            {% if random_post %}
+            <div class="thought-card">
+                <div class="thought-author">
+                    {% if random_post.author.profile_pic and random_post.author.profile_pic != 'default.jpg' %}
+                        <img src="{{ url_for('static', filename='uploads/' + random_post.author.profile_pic) }}" alt="{{ random_post.author.username }}">
+                    {% else %}
+                        <img src="{{ url_for('static', filename='img/default_avatar.svg') }}" alt="{{ random_post.author.username }}">
+                    {% endif %}
+                    <div>
+                        <div class="name">{{ random_post.author.display_name or random_post.author.username }}</div>
+                        <div style="font-size:11px;color:var(--muted);font-weight:500;">{{ random_post.timestamp.strftime('%b %d') }}</div>
+                    </div>
+                </div>
+                {% if random_post.image and not random_post.is_sensitive %}
+                <img src="{{ url_for('static', filename='uploads/' + random_post.image) }}" class="thought-img">
+                {% endif %}
+                {% if random_post.content %}
+                <div class="thought-text">{{ random_post.content }}</div>
+                {% endif %}
+                <div style="display:flex;gap:8px;">
+                    {% if current_user.has_requested(random_post.author) %}
+                        <button class="btn btn-ghost btn-sm" style="flex:1;" data-follow-user="{{ random_post.author.username }}">Requested ⏳</button>
+                    {% elif current_user.is_following(random_post.author) %}
+                        <button class="btn btn-ghost btn-sm" style="flex:1;" data-follow-user="{{ random_post.author.username }}">Unfollow</button>
+                    {% else %}
+                        <button class="btn btn-sm" style="flex:1;" data-follow-user="{{ random_post.author.username }}">Follow</button>
+                    {% endif %}
+                    <a href="{{ url_for('main.profile', username=random_post.author.username) }}" class="btn btn-ghost btn-sm" style="flex:1;text-align:center;">View</a>
+                </div>
+            </div>
+            {% else %}
+                <div style="text-align:center;padding:16px 0;color:var(--muted);font-size:13px;font-weight:500;">No discoveries yet 🌍</div>
+            {% endif %}
+        </div>
+
+        {% if trending_hashtags %}
+        <div class="right-card">
+            <div class="right-card-title">🏷️ Trending Tags</div>
+            <div style="display:flex;flex-wrap:wrap;gap:8px;">
+                {% for tag, count in trending_hashtags %}
+                <a href="{{ url_for('main.hashtag', tag=tag) }}"
+                   style="padding:5px 12px;border-radius:99px;
+                          background:var(--blue-soft);border:1.5px solid var(--blue);
+                          color:var(--blue);font-size:13px;font-weight:700;
+                          text-decoration:none;transition:all 0.2s;"
+                   onmouseover="this.style.background='var(--blue)';this.style.color='white'"
+                   onmouseout="this.style.background='var(--blue-soft)';this.style.color='var(--blue)'">
+                    #{{ tag }} <span style="font-size:11px;opacity:0.7;">{{ count }}</span>
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+    </aside>
+
+</div>
+
+<script>
+// ── Image preview ──
+function previewImage(input) {
+    if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        reader.onload = e => {
+            const img = document.getElementById('previewImg');
+            img.src = e.target.result;
+            img.style.display = 'block';
+            document.getElementById('removeImgBtn').style.display = 'flex';
+            document.getElementById('photoPanel').style.display = 'block';
+        };
+        reader.readAsDataURL(input.files[0]);
+    }
+}
+
+function removeImage() {
+    document.getElementById('imageInput').value = '';
+    document.getElementById('previewImg').style.display = 'none';
+    document.getElementById('removeImgBtn').style.display = 'none';
+    document.getElementById('captionInput').value = '';
+    document.getElementById('photoPanel').style.display = 'none';
+}
+
+// ── Privacy toggle ──
+let isPrivateFlag = false;
+function togglePrivacy() {
+    isPrivateFlag = !isPrivateFlag;
+    document.getElementById('toggleTrack').style.background = isPrivateFlag ? 'var(--purple)' : 'var(--border)';
+    document.getElementById('toggleThumb').style.left = isPrivateFlag ? '25px' : '3px';
+    document.getElementById('privacyLabel').innerHTML = isPrivateFlag ? '🔒 Private' : '🌍 Public';
+    document.getElementById('privacyDesc').innerHTML = isPrivateFlag ? 'Only you can see this post' : 'Everyone can see this post';
+    document.getElementById('isPrivate').value = isPrivateFlag ? '1' : '0';
+}
+
+// ── Sensitive toggle ──
+let isSensitiveFlag = false;
+function toggleSensitive() {
+    isSensitiveFlag = !isSensitiveFlag;
+    document.getElementById('sensitiveTrack').style.background = isSensitiveFlag ? '#e84855' : 'var(--border)';
+    document.getElementById('sensitiveThumb').style.left = isSensitiveFlag ? '25px' : '3px';
+    document.getElementById('sensitiveLabel').innerHTML = isSensitiveFlag ? '⚠️ Sensitive Content' : '✅ Safe Content';
+    document.getElementById('sensitiveDesc').innerHTML = isSensitiveFlag ? 'Viewers will see a warning before viewing' : 'No content warning needed';
+    document.getElementById('isSensitive').value = isSensitiveFlag ? '1' : '0';
+}
+
+// ── Poll ──
+function togglePollBox() {
+    const p = document.getElementById('pollPanel');
+    p.style.display = p.style.display === 'none' ? 'block' : 'none';
+}
+let pollCount = 2;
+function addPollOption() {
+    if (pollCount >= 4) return;
+    pollCount++;
+    const input = document.createElement('input');
+    input.type = 'text'; input.name = 'poll_options[]';
+    input.placeholder = 'Option ' + pollCount;
+    input.style.cssText = 'width:100%;border-radius:10px;padding:9px 14px;font-size:14px;margin-bottom:8px;';
+    document.getElementById('pollOptions').appendChild(input);
+}
+
+// ── Feed tabs ──
+function switchFeedTab(tab) {
+    document.getElementById('feed-posts').style.display = tab === 'posts' ? 'block' : 'none';
+    document.getElementById('feed-thoughts').style.display = tab === 'thoughts' ? 'block' : 'none';
+    document.getElementById('ftab-posts').style.color = tab === 'posts' ? 'var(--purple)' : 'var(--muted)';
+    document.getElementById('ftab-thoughts').style.color = tab === 'thoughts' ? 'var(--purple)' : 'var(--muted)';
+    document.getElementById('ftab-posts').style.borderBottomColor = tab === 'posts' ? 'var(--purple)' : 'transparent';
+    document.getElementById('ftab-thoughts').style.borderBottomColor = tab === 'thoughts' ? 'var(--purple)' : 'transparent';
+}
+
+// ── Sensitive reveal ──
+function revealSensitive(postId) {
+    const overlay = document.getElementById('sensitive-' + postId);
+    const img = document.getElementById('img-' + postId);
+    if (overlay) overlay.style.display = 'none';
+    if (img) img.style.filter = 'none';
+}
+function revealSensitiveText(postId) {
+    const overlay = document.getElementById('sensitive-text-' + postId);
+    const text = document.getElementById('text-' + postId);
+    if (overlay) overlay.style.display = 'none';
+    if (text) { text.style.filter = 'none'; text.style.pointerEvents = 'auto'; text.style.userSelect = 'auto'; }
+}
+
+// ── Post ··· menu ──
+function togglePostMenu(postId) {
+    document.querySelectorAll('.post-more-menu').forEach(m => {
+        if (m.id !== 'more-menu-' + postId) m.classList.remove('open');
+    });
+    document.getElementById('more-menu-' + postId).classList.toggle('open');
+}
+document.addEventListener('click', (e) => {
+    if (!e.target.closest('.post-more-wrap')) {
+        document.querySelectorAll('.post-more-menu').forEach(m => m.classList.remove('open'));
+    }
+});
+</script>
+<!-- ── SHARE POST MODAL ── -->
+<div id="shareModal" style="
+    display:none; position:fixed; inset:0;
+    background:rgba(0,0,0,0.6); z-index:9999;
+    align-items:center; justify-content:center;
+    backdrop-filter:blur(4px);
+">
+  <div style="
+      background:var(--surface); border:1.5px solid var(--border);
+      border-radius:24px; padding:2rem; max-width:440px; width:90%;
+      box-shadow:0 20px 60px rgba(0,0,0,0.4); position:relative;
+  ">
+    <button onclick="closeShareModal()" style="
+        position:absolute; top:1rem; right:1rem;
+        background:var(--surface2); border:1.5px solid var(--border);
+        border-radius:8px; width:32px; height:32px;
+        cursor:pointer; color:var(--muted); font-size:16px;
+        display:flex; align-items:center; justify-content:center;
+        font-family:inherit;
+    ">✕</button>
+
+    <div style="font-size:1.4rem;margin-bottom:.4rem;">📤</div>
+    <h3 style="color:var(--text);font-size:1.05rem;font-weight:800;margin-bottom:.25rem;">
+        Share Post
+    </h3>
+    <p id="sharePreviewText" style="color:var(--muted);font-size:.8rem;
+       margin-bottom:1.25rem;line-height:1.5;
+       white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"></p>
+
+    <!-- External share buttons -->
+    <div style="margin-bottom:1.25rem;">
+        <div style="font-size:.72rem;font-weight:700;color:var(--muted);
+                    text-transform:uppercase;letter-spacing:.5px;margin-bottom:.6rem;">
+            Share Externally
+        </div>
+        <div style="display:flex;gap:.6rem;flex-wrap:wrap;">
+            <button onclick="shareWhatsApp()" style="
+                flex:1; min-width:100px;
+                padding:.6rem .5rem; border-radius:12px;
+                background:#25D36615; border:1.5px solid #25D36640;
+                color:#25D366; font-size:.82rem; font-weight:700;
+                cursor:pointer; font-family:inherit; transition:all .2s;
+                display:flex; align-items:center; justify-content:center; gap:.4rem;
+            " onmouseover="this.style.background='#25D36625'"
+               onmouseout="this.style.background='#25D36615'">
+                <span style="font-size:1rem;">💬</span> WhatsApp
+            </button>
+            <button onclick="shareTwitter()" style="
+                flex:1; min-width:100px;
+                padding:.6rem .5rem; border-radius:12px;
+                background:#1DA1F215; border:1.5px solid #1DA1F240;
+                color:#1DA1F2; font-size:.82rem; font-weight:700;
+                cursor:pointer; font-family:inherit; transition:all .2s;
+                display:flex; align-items:center; justify-content:center; gap:.4rem;
+            " onmouseover="this.style.background='#1DA1F225'"
+               onmouseout="this.style.background='#1DA1F215'">
+                <span style="font-size:1rem;">🐦</span> Twitter/X
+            </button>
+            <button onclick="shareInstagram()" style="
+                flex:1; min-width:100px;
+                padding:.6rem .5rem; border-radius:12px;
+                background:#E91E6315; border:1.5px solid #E91E6340;
+                color:#E91E63; font-size:.82rem; font-weight:700;
+                cursor:pointer; font-family:inherit; transition:all .2s;
+                display:flex; align-items:center; justify-content:center; gap:.4rem;
+            " onmouseover="this.style.background='#E91E6325'"
+               onmouseout="this.style.background='#E91E6315'">
+                <span style="font-size:1rem;">📸</span> Instagram
+            </button>
+        </div>
+    </div>
+
+    <!-- Share via LYNK DM -->
+    <div>
+        <div style="font-size:.72rem;font-weight:700;color:var(--muted);
+                    text-transform:uppercase;letter-spacing:.5px;margin-bottom:.6rem;">
+            Send to a Friend on LYNK
+        </div>
+        <div style="position:relative;margin-bottom:.75rem;">
+            <input type="text" id="shareSearchInput"
+                   placeholder="Search mutual followers…"
+                   oninput="filterShareFriends(this.value)"
+                   style="width:100%;background:var(--surface2);
+                          border:1.5px solid var(--border);border-radius:12px;
+                          padding:.6rem 1rem;color:var(--text);font-size:.88rem;
+                          outline:none;font-family:inherit;box-sizing:border-box;
+                          transition:border-color .2s;"
+                   onfocus="this.style.borderColor='var(--purple)'"
+                   onblur="this.style.borderColor='var(--border)'">
+        </div>
+        <div id="shareFriendsList" style="
+            max-height:160px; overflow-y:auto;
+            display:flex; flex-direction:column; gap:.4rem;
+        "></div>
+        <div id="shareSuccessMsg" style="
+            display:none; text-align:center; padding:.75rem;
+            background:rgba(16,185,129,.1); border:1px solid rgba(16,185,129,.25);
+            border-radius:10px; color:#34d399; font-size:.85rem; font-weight:700;
+            margin-top:.75rem;
+        ">✓ Sent!</div>
+        <div id="shareErrorMsg" style="
+            display:none; text-align:center; padding:.5rem;
+            color:#f87171; font-size:.82rem; margin-top:.5rem;
+        "></div>
+    </div>
+  </div>
+</div>
+<!-- ── POST IDEA GENERATOR MODAL ── -->
+<div id="ideasModal" style="
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.6); z-index: 9999;
+    align-items: center; justify-content: center;
+    backdrop-filter: blur(4px);
+">
+  <div style="
+      background: var(--surface);
+      border: 1.5px solid var(--border);
+      border-radius: 24px;
+      padding: 2rem;
+      max-width: 480px; width: 90%;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+      position: relative;
+  ">
+    <!-- Close -->
+    <button onclick="closeIdeasModal()" style="
+        position: absolute; top: 1rem; right: 1rem;
+        background: var(--surface2); border: 1.5px solid var(--border);
+        border-radius: 8px; width: 32px; height: 32px;
+        cursor: pointer; color: var(--muted); font-size: 16px;
+        display: flex; align-items: center; justify-content: center;
+        font-family: inherit; transition: all 0.2s;
+    ">✕</button>
+
+    <div style="font-size:1.5rem;margin-bottom:.4rem;">💡</div>
+    <h3 style="color:var(--text);font-size:1.1rem;font-weight:800;margin-bottom:.3rem;">
+      Get Post Ideas
+    </h3>
+    <p style="color:var(--muted);font-size:.82rem;margin-bottom:1.25rem;">
+      Tell us your mood or interests and we'll spark some ideas.
+    </p>
+
+    <!-- Inputs -->
+    <div style="margin-bottom:.85rem;">
+      <label style="display:block;font-size:.75rem;font-weight:700;
+                    color:var(--muted);text-transform:uppercase;
+                    letter-spacing:.5px;margin-bottom:.4rem;">
+        Your mood right now
+      </label>
+      <div style="display:flex;gap:.5rem;flex-wrap:wrap;" id="moodChips">
+        {% for emoji, label in [('😊','Happy'),('😴','Tired'),('🔥','Motivated'),('🤔','Thoughtful'),('😂','Funny'),('💭','Reflective')] %}
+        <button type="button"
+                onclick="selectMoodChip(this, '{{ emoji }} {{ label }}')"
+                style="background:var(--surface2);border:1.5px solid var(--border);
+                       border-radius:20px;padding:.3rem .8rem;font-size:.78rem;
+                       color:var(--text);cursor:pointer;font-family:inherit;
+                       transition:all .2s;">
+          {{ emoji }} {{ label }}
+        </button>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div style="margin-bottom:1.25rem;">
+      <label style="display:block;font-size:.75rem;font-weight:700;
+                    color:var(--muted);text-transform:uppercase;
+                    letter-spacing:.5px;margin-bottom:.4rem;">
+        Interests (optional)
+      </label>
+      <input type="text" id="ideasInterests"
+             placeholder="e.g. coding, coffee, travel…"
+             style="width:100%;background:var(--surface2);
+                    border:1.5px solid var(--border);border-radius:12px;
+                    padding:.65rem 1rem;color:var(--text);font-size:.88rem;
+                    outline:none;font-family:inherit;box-sizing:border-box;
+                    transition:border-color .2s;"
+             onfocus="this.style.borderColor='var(--purple)'"
+             onblur="this.style.borderColor='var(--border)'">
+    </div>
+
+    <!-- Generate Button -->
+    <button onclick="generateIdeas()" id="ideasGenBtn" style="
+        width:100%;padding:.75rem;
+        background:linear-gradient(135deg,var(--purple),var(--pink));
+        color:white;border:none;border-radius:14px;
+        font-size:.95rem;font-weight:700;cursor:pointer;
+        font-family:inherit;transition:all .2s;margin-bottom:1rem;
+    ">✨ Generate Ideas</button>
+
+    <!-- Ideas Output -->
+    <div id="ideasOutput" style="display:none;">
+      <div style="font-size:.75rem;font-weight:700;color:var(--muted);
+                  text-transform:uppercase;letter-spacing:.5px;margin-bottom:.6rem;">
+        Click an idea to use it ↓
+      </div>
+      <div id="ideasList" style="display:flex;flex-direction:column;gap:.5rem;"></div>
+    </div>
+
+    <!-- Loading -->
+    <div id="ideasLoading" style="display:none;text-align:center;padding:1rem;
+                                   color:var(--muted);font-size:.85rem;">
+      ⏳ Generating ideas…
+    </div>
+
+    <!-- Error -->
+    <div id="ideasError" style="display:none;color:#f87171;font-size:.82rem;
+                                 text-align:center;padding:.5rem;"></div>
+  </div>
+</div>
+
+<script>
+// ── POST IDEA GENERATOR ──────────────────────────────────────
+let selectedMood = "";
+
+function openIdeasModal() {
+    document.getElementById('ideasModal').style.display = 'flex';
+    document.getElementById('ideasOutput').style.display = 'none';
+    document.getElementById('ideasLoading').style.display = 'none';
+    document.getElementById('ideasError').style.display = 'none';
+    document.getElementById('ideasInterests').value = '';
+    selectedMood = '';
+    document.querySelectorAll('#moodChips button').forEach(b => {
+        b.style.background = 'var(--surface2)';
+        b.style.borderColor = 'var(--border)';
+        b.style.color = 'var(--text)';
+    });
+}
+
+function closeIdeasModal() {
+    document.getElementById('ideasModal').style.display = 'none';
+}
+
+function selectMoodChip(btn, mood) {
+    selectedMood = mood;
+    document.querySelectorAll('#moodChips button').forEach(b => {
+        b.style.background = 'var(--surface2)';
+        b.style.borderColor = 'var(--border)';
+        b.style.color = 'var(--text)';
+    });
+    btn.style.background = 'var(--purple-soft)';
+    btn.style.borderColor = 'var(--purple)';
+    btn.style.color = 'var(--purple)';
+}
+
+function generateIdeas() {
+    const interests = document.getElementById('ideasInterests').value.trim();
+    const btn = document.getElementById('ideasGenBtn');
+    const loading = document.getElementById('ideasLoading');
+    const output = document.getElementById('ideasOutput');
+    const error = document.getElementById('ideasError');
+    const list = document.getElementById('ideasList');
+
+    btn.disabled = true;
+    btn.textContent = '⏳ Thinking…';
+    loading.style.display = 'block';
+    output.style.display = 'none';
+    error.style.display = 'none';
+    list.innerHTML = '';
+
+    fetch('/ai/post-ideas', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mood: selectedMood, interests: interests })
+    })
+    .then(r => r.json())
+    .then(data => {
+        btn.disabled = false;
+        btn.textContent = '✨ Generate Ideas';
+        loading.style.display = 'none';
+
+        if (data.ideas && data.ideas.length > 0) {
+            data.ideas.forEach(idea => {
+                const item = document.createElement('button');
+                item.type = 'button';
+                item.textContent = idea;
+                item.style.cssText = `
+                    width: 100%; text-align: left;
+                    background: var(--surface2);
+                    border: 1.5px solid var(--border);
+                    border-radius: 12px; padding: .65rem 1rem;
+                    font-size: .85rem; color: var(--text);
+                    cursor: pointer; font-family: inherit;
+                    transition: all .2s; line-height: 1.4;
+                `;
+                item.onmouseover = () => {
+                    item.style.borderColor = 'var(--purple)';
+                    item.style.background = 'var(--purple-soft)';
+                    item.style.color = 'var(--purple)';
+                };
+                item.onmouseout = () => {
+                    item.style.borderColor = 'var(--border)';
+                    item.style.background = 'var(--surface2)';
+                    item.style.color = 'var(--text)';
+                };
+                item.onclick = () => {
+                    // Fill the compose textarea
+                    const compose = document.querySelector(
+                        'textarea[name="content"], #postContent, .compose-input, textarea.post-input'
+                    );
+                    if (compose) {
+                        compose.value = idea;
+                        compose.focus();
+                        compose.dispatchEvent(new Event('input'));
+                    }
+                    closeIdeasModal();
+                };
+                list.appendChild(item);
+            });
+            output.style.display = 'block';
+        } else {
+            error.textContent = 'No ideas generated. Try again!';
+            error.style.display = 'block';
+        }
+    })
+    .catch(() => {
+        btn.disabled = false;
+        btn.textContent = '✨ Generate Ideas';
+        loading.style.display = 'none';
+        error.textContent = 'Something went wrong. Try again.';
+        error.style.display = 'block';
+    });
+}
+
+// Close modal on backdrop click
+document.getElementById('ideasModal').addEventListener('click', function(e) {
+    if (e.target === this) closeIdeasModal();
+});
+
+// ── HASHTAG RECOMMENDER ──────────────────────────────────────
+function loadHashtags() {
+    const content = document.getElementById('postContent').value.trim();
+    const strip = document.getElementById('hashtagStrip');
+    const chips = document.getElementById('hashtagChips');
+    const btn = document.getElementById('hashtagBtn');
+
+    strip.style.display = 'block';
+
+    if (!content) {
+        chips.innerHTML = '<span style="font-size:13px;color:var(--muted);font-style:italic;">Write something first, then click 🏷️ Hashtags</span>';
+        return;
+    }
+
+    btn.textContent = '⏳ Loading…';
+    btn.disabled = true;
+    chips.innerHTML = '<span style="font-size:13px;color:var(--muted);font-style:italic;">Finding best hashtags…</span>';
+
+    fetch('/ai/hashtags', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: content })
+    })
+    .then(r => r.json())
+    .then(data => {
+        btn.textContent = '🏷️ Hashtags';
+        btn.disabled = false;
+        chips.innerHTML = '';
+
+        if (data.hashtags && data.hashtags.length > 0) {
+            data.hashtags.forEach(tag => {
+                const chip = document.createElement('button');
+                chip.type = 'button';
+                chip.textContent = tag;
+                chip.style.cssText = `
+                    background: var(--blue-soft);
+                    border: 1.5px solid var(--blue);
+                    border-radius: 99px;
+                    padding: 4px 12px;
+                    font-size: 13px; font-weight: 700;
+                    color: var(--blue);
+                    cursor: pointer; font-family: inherit;
+                    transition: all 0.2s;
+                `;
+                chip.onmouseover = () => {
+                    chip.style.background = 'var(--blue)';
+                    chip.style.color = 'white';
+                };
+                chip.onmouseout = () => {
+                    chip.style.background = 'var(--blue-soft)';
+                    chip.style.color = 'var(--blue)';
+                };
+                chip.onclick = () => {
+                    const textarea = document.getElementById('postContent');
+                    const current = textarea.value;
+                    // Don't add if already in the post
+                    if (current.includes(tag)) {
+                        chip.style.opacity = '0.4';
+                        chip.disabled = true;
+                        return;
+                    }
+                    // Append with a space
+                    textarea.value = current.trimEnd() + ' ' + tag;
+                    textarea.dispatchEvent(new Event('input'));
+                    textarea.focus();
+                    // Visual feedback — mark as added
+                    chip.style.background = 'var(--purple-soft)';
+                    chip.style.borderColor = 'var(--purple)';
+                    chip.style.color = 'var(--purple)';
+                    chip.textContent = '✓ ' + tag;
+                    chip.disabled = true;
+                };
+                chips.appendChild(chip);
+            });
+        } else {
+            chips.innerHTML = '<span style="font-size:13px;color:var(--muted);">No hashtags found. Try writing more content.</span>';
+        }
+    })
+    .catch(() => {
+        btn.textContent = '🏷️ Hashtags';
+        btn.disabled = false;
+        chips.innerHTML = '<span style="font-size:13px;color:#f87171;">Failed to load. Try again.</span>';
+    });
+}
+
+function closeHashtagStrip() {
+    document.getElementById('hashtagStrip').style.display = 'none';
+    document.getElementById('hashtagChips').innerHTML = '';
+}
+// ─────────────────────────────────────────────────────────────
+
+// ── SHARE MODAL ──────────────────────────────────────────────
+let currentSharePostId = null;
+let currentSharePostText = '';
+let currentSharePostAuthor = '';
+let allFriends = [];
+
+function openShareModal(postId, text, author) {
+    currentSharePostId = postId;
+    currentSharePostText = text;
+    currentSharePostAuthor = author;
+
+    document.getElementById('shareModal').style.display = 'flex';
+    document.getElementById('sharePreviewText').textContent = '"' + text + '" — @' + author;
+    document.getElementById('shareSuccessMsg').style.display = 'none';
+    document.getElementById('shareErrorMsg').style.display = 'none';
+    document.getElementById('shareSearchInput').value = '';
+
+    loadShareFriends();
+}
+
+function closeShareModal() {
+    document.getElementById('shareModal').style.display = 'none';
+    currentSharePostId = null;
+}
+
+function loadShareFriends() {
+    const list = document.getElementById('shareFriendsList');
+    list.innerHTML = '<div style="font-size:.8rem;color:var(--muted);text-align:center;padding:.5rem;">Loading…</div>';
+
+    fetch('/api/mutual-friends')
+    .then(r => r.json())
+    .then(data => {
+        allFriends = data.friends || [];
+        renderFriends(allFriends);
+    })
+    .catch(() => {
+        list.innerHTML = '<div style="font-size:.8rem;color:var(--muted);text-align:center;padding:.5rem;">Could not load friends.</div>';
+    });
+}
+
+function renderFriends(friends) {
+    const list = document.getElementById('shareFriendsList');
+    if (friends.length === 0) {
+        list.innerHTML = '<div style="font-size:.8rem;color:var(--muted);text-align:center;padding:.5rem;">No mutual followers found.</div>';
+        return;
+    }
+    list.innerHTML = '';
+    friends.forEach(friend => {
+        const row = document.createElement('div');
+        row.style.cssText = `
+            display:flex; align-items:center; gap:.75rem;
+            padding:.5rem .75rem; border-radius:12px;
+            border:1.5px solid var(--border);
+            background:var(--surface2); cursor:pointer;
+            transition:all .2s;
+        `;
+        row.onmouseover = () => {
+            row.style.borderColor = 'var(--purple)';
+            row.style.background = 'var(--purple-soft)';
+        };
+        row.onmouseout = () => {
+            row.style.borderColor = 'var(--border)';
+            row.style.background = 'var(--surface2)';
+        };
+        row.innerHTML = `
+            <img src="${friend.pic}" style="width:34px;height:34px;border-radius:50%;
+                 object-fit:cover;border:2px solid var(--pink);flex-shrink:0;">
+            <div style="flex:1;min-width:0;">
+                <div style="font-size:.85rem;font-weight:700;color:var(--text);
+                            white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+                    ${friend.display}
+                </div>
+                <div style="font-size:.72rem;color:var(--muted);">@${friend.username}</div>
+            </div>
+            <span style="font-size:.75rem;color:var(--purple);font-weight:700;">Send →</span>
+        `;
+        row.onclick = () => sendPostViaDM(friend.username, row);
+        list.appendChild(row);
+    });
+}
+
+function filterShareFriends(query) {
+    const filtered = allFriends.filter(f =>
+        f.username.toLowerCase().includes(query.toLowerCase()) ||
+        f.display.toLowerCase().includes(query.toLowerCase())
+    );
+    renderFriends(filtered);
+}
+
+function sendPostViaDM(username, row) {
+    const successMsg = document.getElementById('shareSuccessMsg');
+    const errorMsg = document.getElementById('shareErrorMsg');
+    successMsg.style.display = 'none';
+    errorMsg.style.display = 'none';
+
+    const originalContent = row.innerHTML;
+    row.innerHTML = '<div style="text-align:center;width:100%;font-size:.8rem;color:var(--muted);">Sending…</div>';
+
+    const formData = new FormData();
+    formData.append('recipient', username);
+
+    fetch(`/share/post/${currentSharePostId}`, {
+        method: 'POST',
+        body: formData
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            successMsg.textContent = `✓ Sent to @${username}!`;
+            successMsg.style.display = 'block';
+            row.innerHTML = originalContent;
+            setTimeout(() => closeShareModal(), 1500);
+        } else {
+            errorMsg.textContent = data.error || 'Failed to send.';
+            errorMsg.style.display = 'block';
+            row.innerHTML = originalContent;
+        }
+    })
+    .catch(() => {
+        errorMsg.textContent = 'Something went wrong.';
+        errorMsg.style.display = 'block';
+        row.innerHTML = originalContent;
+    });
+}
+
+function shareWhatsApp() {
+    const url = window.location.origin + '/comment/' + currentSharePostId;
+    const text = encodeURIComponent('"' + currentSharePostText + '" — @' + currentSharePostAuthor + ' on LYNK\n' + url);
+    window.open('https://wa.me/?text=' + text, '_blank');
+}
+
+function shareTwitter() {
+    const url = window.location.origin + '/comment/' + currentSharePostId;
+    const text = encodeURIComponent('"' + currentSharePostText + '" — @' + currentSharePostAuthor + ' on LYNK');
+    window.open(`https://twitter.com/intent/tweet?text=${text}&url=${encodeURIComponent(url)}`, '_blank');
+}
+
+function shareInstagram() {
+    // Instagram has no web share API — copy link instead
+    const url = window.location.origin + '/comment/' + currentSharePostId;
+    navigator.clipboard.writeText(url).then(() => {
+        const btn = event.target.closest('button');
+        const original = btn.innerHTML;
+        btn.innerHTML = '✓ Link Copied!';
+        btn.style.background = 'rgba(139,92,246,.15)';
+        btn.style.borderColor = 'rgba(139,92,246,.4)';
+        btn.style.color = 'var(--purple)';
+        setTimeout(() => {
+            btn.innerHTML = original;
+            btn.style.background = '#E91E6315';
+            btn.style.borderColor = '#E91E6340';
+            btn.style.color = '#E91E63';
+        }, 2000);
+    });
+}
+
+document.getElementById('shareModal').addEventListener('click', function(e) {
+    if (e.target === this) closeShareModal();
+});
+// ─────────────────────────────────────────────────────────────
+</script>
+
+
+{% endblock %}
