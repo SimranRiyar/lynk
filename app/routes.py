@@ -409,36 +409,33 @@ def register():
         if User.query.filter_by(email=email).first():
             flash("Email already registered.", "danger")
             return redirect(url_for("main.register"))
+        # Create user first — verified immediately, no email blocking
+        user = User(username=username, email=email,
+                    password=generate_password_hash(password), is_verified=True)
+        db.session.add(user)
+        db.session.commit()
+
+        # Try to send welcome email but don't block registration if it fails
         try:
             token = generate_confirmation_token(email)
             confirm_url = url_for("main.confirm_email", token=token, _external=True)
             msg = MailMessage(
-                subject="Confirm your Lynk account ✨",
+                subject="Welcome to Lynk ✨",
                 recipients=[email],
                 html=f"""
                 <div style="font-family:sans-serif;max-width:480px;margin:auto;padding:32px;
                             border:1px solid #EDD9EA;border-radius:16px;">
                     <h2 style="color:#9B6FD4;">Welcome to Lynk ✨</h2>
-                    <p>Hi <strong>{username}</strong>, please confirm your email.</p>
-                    <a href="{confirm_url}"
-                       style="background:linear-gradient(135deg,#9B6FD4,#E991C0);
-                              color:white;padding:14px 28px;border-radius:12px;
-                              text-decoration:none;font-weight:700;display:inline-block;margin-top:16px;">
-                        Confirm Email →
-                    </a>
-                    <p style="color:#9B7EA0;font-size:13px;margin-top:24px;">Expires in 1 hour.</p>
+                    <p>Hi <strong>{username}</strong>, welcome aboard!</p>
+                    <p style="color:#9B7EA0;font-size:13px;margin-top:24px;">You can log in now.</p>
                 </div>
                 """
             )
             mail.send(msg)
         except Exception as e:
-            flash(f"Could not send confirmation email: {str(e)}", "danger")
-            return redirect(url_for("main.register"))
-        user = User(username=username, email=email,
-                    password=generate_password_hash(password), is_verified=False)
-        db.session.add(user)
-        db.session.commit()
-        flash("Account created! Please check your email.", "success")
+            print(f"Welcome email failed (non-blocking): {e}")
+
+        flash("Account created! You can now log in. 🎉", "success")
         return redirect(url_for("main.login"))
     return render_template("register.html")
 
@@ -2547,7 +2544,8 @@ def send_weekly_digest(app):
                         <div style="background:#f8f0f6;padding:16px 32px;
                                     border-radius:0 0 20px 20px;
                                     border:1px solid #edd9ea;border-top:none;
-                                    text-align:center;">
+                                    text-align:center;">railway run python finalcheck.py
+                                    
                             <p style="font-size:12px;color:#9b7ea0;margin:0;">
                                 You're receiving this because you have a LYNK account.<br>
                                 Sent every Monday · LYNK ✦
