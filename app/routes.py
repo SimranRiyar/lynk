@@ -515,22 +515,6 @@ def login():
             ))
             db.session.commit()
             login_user(user)
-            try:
-                msg = MailMessage(
-                    subject="New login to your Lynk account 🔔",
-                    recipients=[user.email],
-                    html=f"""
-                    <div style="font-family:sans-serif;max-width:420px;margin:auto;
-                                padding:32px;border:1px solid #EDD9EA;border-radius:16px;">
-                        <h2 style="color:#9B6FD4;">New Login Detected</h2>
-                        <p><strong>Time:</strong> {datetime.utcnow().strftime('%B %d, %Y at %H:%M UTC')}</p>
-                        <p><strong>IP:</strong> {request.remote_addr}</p>
-                    </div>
-                    """
-                )
-                mail.send(msg)
-            except:
-                pass
             next_page = request.args.get("next")
             if next_page and is_safe_url(next_page):
                 return redirect(next_page)
@@ -2541,11 +2525,10 @@ def send_weekly_digest(app):
                         </div>
 
                         <!-- Footer -->
-                        <div style="background:#f8f0f6;padding:16px 32px;
+                         <div style="background:#f8f0f6;padding:16px 32px;
                                     border-radius:0 0 20px 20px;
                                     border:1px solid #edd9ea;border-top:none;
-                                    text-align:center;">railway run python finalcheck.py
-                                    
+                                    text-align:center;">
                             <p style="font-size:12px;color:#9b7ea0;margin:0;">
                                 You're receiving this because you have a LYNK account.<br>
                                 Sent every Monday · LYNK ✦
