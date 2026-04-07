@@ -61,9 +61,12 @@
 <div class="wa-wrap">
     <div class="wa-left">
         <div class="wa-left-header">
-            <h2>💬 Messages</h2>
-            <a href="{{ url_for('main.home') }}" class="wa-icon-btn">🏠</a>
-        </div>
+    <h2>💬 Messages</h2>
+    <div style="display:flex;gap:6px;">
+        <a href="{{ url_for('main.ai_dm') }}" class="wa-icon-btn" title="Lynk AI Chat">✨</a>
+        <a href="{{ url_for('main.home') }}" class="wa-icon-btn" title="Home">🏠</a>
+    </div>
+</div>
         <div class="wa-search">
             <input type="text" placeholder="Search conversations…"
                    oninput="filterChats(this.value)">

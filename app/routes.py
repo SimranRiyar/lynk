@@ -889,7 +889,7 @@ def edit_post(post_id):
 @login_required
 def delete_post(post_id):
     post = Post.query.get_or_404(post_id)
-    if post.author != current_user:
+    if post.user_id != current_user.id:
         flash("Unauthorized action.", "danger")
         return redirect(url_for("main.home"))
     db.session.delete(post)
@@ -1460,10 +1460,12 @@ def delete_account():
     if not check_password_hash(current_user.password, password):
         flash("Incorrect password.", "danger")
         return redirect(url_for("main.settings"))
-    user = current_user
+    user_id = current_user.id
     logout_user()
-    db.session.delete(user)
-    db.session.commit()
+    user = User.query.get(user_id)
+    if user:
+        db.session.delete(user)
+        db.session.commit()
     flash("Your account has been permanently deleted.", "info")
     return redirect(url_for("main.landing"))
 

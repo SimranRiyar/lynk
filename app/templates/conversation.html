@@ -558,12 +558,12 @@
   <!-- ══ LEFT PANEL ══ -->
   <div class="wa-left" id="waLeft">
     <div class="wa-left-header">
-      <h2>💬 Messages</h2>
-      <div class="wa-left-header-actions">
-        <a href="{{ url_for('main.home') }}"    class="wa-icon-btn" title="Home">🏠</a>
-        <a href="{{ url_for('main.explore') }}" class="wa-icon-btn" title="Explore">🔭</a>
-      </div>
+    <h2>💬 Messages</h2>
+    <div style="display:flex;gap:6px;">
+        <a href="{{ url_for('main.ai_dm') }}" class="wa-icon-btn" title="Lynk AI Chat">✨</a>
+        <a href="{{ url_for('main.home') }}" class="wa-icon-btn" title="Home">🏠</a>
     </div>
+</div>
 
     <div class="wa-search">
       <input type="text" id="chatSearch" placeholder="Search conversations…"
