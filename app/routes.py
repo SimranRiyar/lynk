@@ -1460,13 +1460,59 @@ def delete_account():
     if not check_password_hash(current_user.password, password):
         flash("Incorrect password.", "danger")
         return redirect(url_for("main.settings"))
+    
     user_id = current_user.id
     logout_user()
-    user = User.query.get(user_id)
-    if user:
-        db.session.delete(user)
+    
+    try:
+        # Delete all related records manually for PostgreSQL
+        # Notifications where user is actor
+        Notification.query.filter_by(actor_id=user_id).delete()
+        # Notifications where user is recipient  
+        Notification.query.filter_by(user_id=user_id).delete()
+        # Messages
+        Message.query.filter_by(sender_id=user_id).delete()
+        Message.query.filter_by(receiver_id=user_id).delete()
+        # Posts and related
+        posts = Post.query.filter_by(user_id=user_id).all()
+        for post in posts:
+            Like.query.filter_by(post_id=post.id).delete()
+            Comment.query.filter_by(post_id=post.id).delete()
+            Reaction.query.filter_by(post_id=post.id).delete()
+        Post.query.filter_by(user_id=user_id).delete()
+        # Follows
+        Follow.query.filter_by(follower_id=user_id).delete()
+        Follow.query.filter_by(followed_id=user_id).delete()
+        # Likes and reactions by user
+        Like.query.filter_by(user_id=user_id).delete()
+        Reaction.query.filter_by(user_id=user_id).delete()
+        # Comments by user
+        Comment.query.filter_by(user_id=user_id).delete()
+        # Reports
+        Report.query.filter_by(reporter_id=user_id).delete()
+        Report.query.filter_by(reported_id=user_id).delete()
+        # Blocks and mutes
+        Block.query.filter_by(blocker_id=user_id).delete()
+        Block.query.filter_by(blocked_id=user_id).delete()
+        Mute.query.filter_by(muter_id=user_id).delete()
+        Mute.query.filter_by(muted_id=user_id).delete()
+        # Login history
+        LoginHistory.query.filter_by(user_id=user_id).delete()
+        # Profile views
+        ProfileView.query.filter_by(profile_id=user_id).delete()
+        ProfileView.query.filter_by(viewer_id=user_id).delete()
+        # Finally delete user
+        user = User.query.get(user_id)
+        if user:
+            db.session.delete(user)
         db.session.commit()
-    flash("Your account has been permanently deleted.", "info")
+        flash("Your account has been permanently deleted.", "info")
+    except Exception as e:
+        db.session.rollback()
+        print(f"Delete account error: {e}")
+        flash("Error deleting account. Please try again.", "danger")
+        return redirect(url_for("main.landing"))
+    
     return redirect(url_for("main.landing"))
 
 
@@ -2240,9 +2286,37 @@ def admin_delete_user(user_id):
     if user.is_admin:
         flash("Cannot delete another admin.", "danger")
         return redirect(url_for("main.admin_users"))
-    db.session.delete(user)
-    db.session.commit()
-    flash("User deleted permanently.", "success")
+    try:
+        Notification.query.filter_by(actor_id=user_id).delete()
+        Notification.query.filter_by(user_id=user_id).delete()
+        Message.query.filter_by(sender_id=user_id).delete()
+        Message.query.filter_by(receiver_id=user_id).delete()
+        posts = Post.query.filter_by(user_id=user_id).all()
+        for post in posts:
+            Like.query.filter_by(post_id=post.id).delete()
+            Comment.query.filter_by(post_id=post.id).delete()
+            Reaction.query.filter_by(post_id=post.id).delete()
+        Post.query.filter_by(user_id=user_id).delete()
+        Follow.query.filter_by(follower_id=user_id).delete()
+        Follow.query.filter_by(followed_id=user_id).delete()
+        Like.query.filter_by(user_id=user_id).delete()
+        Reaction.query.filter_by(user_id=user_id).delete()
+        Comment.query.filter_by(user_id=user_id).delete()
+        Report.query.filter_by(reporter_id=user_id).delete()
+        Report.query.filter_by(reported_id=user_id).delete()
+        Block.query.filter_by(blocker_id=user_id).delete()
+        Block.query.filter_by(blocked_id=user_id).delete()
+        Mute.query.filter_by(muter_id=user_id).delete()
+        Mute.query.filter_by(muted_id=user_id).delete()
+        LoginHistory.query.filter_by(user_id=user_id).delete()
+        ProfileView.query.filter_by(profile_id=user_id).delete()
+        ProfileView.query.filter_by(viewer_id=user_id).delete()
+        db.session.delete(user)
+        db.session.commit()
+        flash("User deleted permanently.", "success")
+    except Exception as e:
+        db.session.rollback()
+        flash(f"Error: {str(e)[:100]}", "danger")
     return redirect(url_for("main.admin_users"))
 
 
