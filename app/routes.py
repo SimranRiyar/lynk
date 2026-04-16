@@ -343,12 +343,18 @@ def send_confirmation_email(user_email, username):
     )
     mail.send(msg)
 
-
 def cleanup_expired():
     now = datetime.utcnow()
-    Story.query.filter(Story.expires_at <= now).delete()
-    Thought.query.filter(Thought.expires_at <= now).delete()
-    db.session.commit()
+    try:
+        expired_stories = Story.query.filter(Story.expires_at <= now).all()
+        for story in expired_stories:
+            StoryView.query.filter_by(story_id=story.id).delete()
+            db.session.delete(story)
+        Thought.query.filter(Thought.expires_at <= now).delete()
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        print(f"Cleanup error: {e}")
 
 
 def unlock_capsules():
