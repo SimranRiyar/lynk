@@ -350,7 +350,9 @@ def cleanup_expired():
         for story in expired_stories:
             StoryView.query.filter_by(story_id=story.id).delete()
             db.session.delete(story)
-        Thought.query.filter(Thought.expires_at <= now).delete()
+        expired_thoughts = Thought.query.filter(Thought.expires_at <= now).all()
+        for thought in expired_thoughts:
+            db.session.delete(thought)
         db.session.commit()
     except Exception as e:
         db.session.rollback()
