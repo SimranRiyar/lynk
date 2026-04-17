@@ -55,6 +55,13 @@ def create_app():
             db.session.add(bot)
             db.session.commit()
             print("✅ Official Lynk AI bot created: @lynk_ai")
+    
+    # ── Permanent admin promotion ──
+        admin_user = User.query.filter_by(email="simrankaurriyar04@gmail.com").first()
+        if admin_user and not admin_user.is_admin:
+            admin_user.is_admin = True
+            db.session.commit()
+            print("✅ simrankaurriyar04@gmail.com promoted to admin")
 
     # Start both schedulers
     from .routes import start_agent_scheduler, start_conversation_scheduler, start_digest_scheduler
