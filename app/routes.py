@@ -429,9 +429,16 @@ def register():
         db.session.commit()
 
         # Try to send welcome email but don't block registration if it fails
+      # Try to send welcome email but don't block registration if it fails
         try:
-            token = generate_confirmation_token(email)
-            confirm_url = url_for("main.confirm_email", token=token, _external=True)
+            print(f"📧 [EMAIL DEBUG] Attempting to send welcome email to: {email}")
+            print(f"📧 [EMAIL DEBUG] MAIL_SERVER={current_app.config.get('MAIL_SERVER')}")
+            print(f"📧 [EMAIL DEBUG] MAIL_PORT={current_app.config.get('MAIL_PORT')}")
+            print(f"📧 [EMAIL DEBUG] MAIL_USERNAME={current_app.config.get('MAIL_USERNAME')}")
+            print(f"📧 [EMAIL DEBUG] MAIL_USE_TLS={current_app.config.get('MAIL_USE_TLS')}")
+            print(f"📧 [EMAIL DEBUG] MAIL_USE_SSL={current_app.config.get('MAIL_USE_SSL')}")
+            print(f"📧 [EMAIL DEBUG] MAIL_DEFAULT_SENDER={current_app.config.get('MAIL_DEFAULT_SENDER')}")
+
             msg = MailMessage(
                 subject="Welcome to Lynk ✨",
                 recipients=[email],
@@ -444,9 +451,17 @@ def register():
                 </div>
                 """
             )
+
             mail.send(msg)
+            print(f"✅ [EMAIL DEBUG] Welcome email sent successfully to {email}")
+
         except Exception as e:
-            print(f"Welcome email failed (non-blocking): {e}")
+            import traceback
+            print(f"❌ [EMAIL ERROR] Failed to send to {email}")
+            print(f"❌ [EMAIL ERROR] Exception type: {type(e).__name__}")
+            print(f"❌ [EMAIL ERROR] Message: {str(e)}")
+            print(f"❌ [EMAIL ERROR] Full traceback:")
+            traceback.print_exc()
 
         flash("Account created! You can now log in. 🎉", "success")
         return redirect(url_for("main.login"))
@@ -2609,7 +2624,7 @@ def send_weekly_digest(app):
 
                             <!-- CTA -->
                             <div style="text-align:center;margin-top:8px;">
-                                <a href="http://localhost:5000/home"
+                                <a href="https://web-production-cc865.up.railway.app/home"
                                    style="display:inline-block;
                                           background:linear-gradient(135deg,#9b6fd4,#e991c0);
                                           color:white;padding:13px 32px;border-radius:14px;
