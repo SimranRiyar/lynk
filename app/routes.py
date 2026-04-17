@@ -448,33 +448,39 @@ def register():
             return redirect(url_for("main.register"))
         # Create user first — verified immediately, no email blocking
         user = User(username=username, email=email,
-                    password=generate_password_hash(password), is_verified=True)
+            password=generate_password_hash(password), is_verified=False)
         db.session.add(user)
         db.session.commit()
 
-        # Try to send welcome email but don't block registration if it fails
-      # Try to send welcome email but don't block registration if it fails
-       # Send welcome email via Brevo HTTP API (Railway blocks SMTP)
+        # Send verification email via Brevo
+        token = generate_confirmation_token(email)
+        confirm_url = url_for("main.confirm_email", token=token, _external=True)
         try:
             send_email_via_brevo(
                 to_email=email,
                 to_name=username,
-                subject="Welcome to Lynk ✨",
+                subject="Confirm your Lynk account ✨",
                 html_content=f"""
                 <div style="font-family:sans-serif;max-width:480px;margin:auto;padding:32px;
                             border:1px solid #EDD9EA;border-radius:16px;">
-                    <h2 style="color:#9B6FD4;">Welcome to Lynk ✨</h2>
-                    <p>Hi <strong>{username}</strong>, welcome aboard!</p>
-                    <p style="color:#9B7EA0;font-size:13px;margin-top:24px;">You can log in now.</p>
-                </div>
-                """
-            )
+                     <h2 style="color:#9B6FD4;">Welcome to Lynk ✨</h2>
+                     <p>Hi <strong>{username}</strong>, please confirm your email to activate your account.</p>
+                     <a href="{confirm_url}"
+                        style="background:linear-gradient(135deg,#9B6FD4,#E991C0);
+                               color:white;padding:14px 28px;border-radius:12px;
+                               text-decoration:none;font-weight:700;display:inline-block;margin-top:16px;">
+                        Confirm Email →
+                     </a>
+                     <p style="color:#9B7EA0;font-size:13px;margin-top:24px;">This link expires in 1 hour.</p>
+               </div>
+            """
+          )
         except Exception as e:
-            print(f"❌ Welcome email failed: {e}")
+          print(f"Confirmation email failed: {e}")
 
-        flash("Account created! You can now log in. 🎉", "success")
-        return redirect(url_for("main.login"))
-    return render_template("register.html")
+        flash("Account created! Please check your email to confirm before logging in.", "success")
+        return redirect(url_for("main.login"))  
+        return render_template("register.html")
 
 
 @main.route("/confirm/<token>", methods=["GET", "POST"])
