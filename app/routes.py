@@ -342,7 +342,31 @@ def send_confirmation_email(user_email, username):
         """
     )
     mail.send(msg)
-
+def send_email_via_brevo(to_email, to_name, subject, html_content):
+    import requests
+    api_key = os.environ.get("BREVO_API_KEY")
+    if not api_key:
+        print("❌ BREVO_API_KEY not set")
+        return False
+    response = requests.post(
+        "https://api.brevo.com/v3/smtp/email",
+        headers={
+            "api-key": api_key,
+            "Content-Type": "application/json"
+        },
+        json={
+            "sender": {"name": "Lynk", "email": os.environ.get("MAIL_DEFAULT_SENDER")},
+            "to": [{"email": to_email, "name": to_name}],
+            "subject": subject,
+            "htmlContent": html_content
+        }
+    )
+    if response.status_code == 201:
+        print(f"✅ Email sent via Brevo API to {to_email}")
+        return True
+    else:
+        print(f"❌ Brevo API error: {response.status_code} - {response.text}")
+        return False
 def cleanup_expired():
     now = datetime.now(UTC)
     try:
@@ -430,19 +454,13 @@ def register():
 
         # Try to send welcome email but don't block registration if it fails
       # Try to send welcome email but don't block registration if it fails
+       # Send welcome email via Brevo HTTP API (Railway blocks SMTP)
         try:
-            print(f"📧 [EMAIL DEBUG] Attempting to send welcome email to: {email}")
-            print(f"📧 [EMAIL DEBUG] MAIL_SERVER={current_app.config.get('MAIL_SERVER')}")
-            print(f"📧 [EMAIL DEBUG] MAIL_PORT={current_app.config.get('MAIL_PORT')}")
-            print(f"📧 [EMAIL DEBUG] MAIL_USERNAME={current_app.config.get('MAIL_USERNAME')}")
-            print(f"📧 [EMAIL DEBUG] MAIL_USE_TLS={current_app.config.get('MAIL_USE_TLS')}")
-            print(f"📧 [EMAIL DEBUG] MAIL_USE_SSL={current_app.config.get('MAIL_USE_SSL')}")
-            print(f"📧 [EMAIL DEBUG] MAIL_DEFAULT_SENDER={current_app.config.get('MAIL_DEFAULT_SENDER')}")
-
-            msg = MailMessage(
+            send_email_via_brevo(
+                to_email=email,
+                to_name=username,
                 subject="Welcome to Lynk ✨",
-                recipients=[email],
-                html=f"""
+                html_content=f"""
                 <div style="font-family:sans-serif;max-width:480px;margin:auto;padding:32px;
                             border:1px solid #EDD9EA;border-radius:16px;">
                     <h2 style="color:#9B6FD4;">Welcome to Lynk ✨</h2>
@@ -451,17 +469,8 @@ def register():
                 </div>
                 """
             )
-
-            mail.send(msg)
-            print(f"✅ [EMAIL DEBUG] Welcome email sent successfully to {email}")
-
         except Exception as e:
-            import traceback
-            print(f"❌ [EMAIL ERROR] Failed to send to {email}")
-            print(f"❌ [EMAIL ERROR] Exception type: {type(e).__name__}")
-            print(f"❌ [EMAIL ERROR] Message: {str(e)}")
-            print(f"❌ [EMAIL ERROR] Full traceback:")
-            traceback.print_exc()
+            print(f"❌ Welcome email failed: {e}")
 
         flash("Account created! You can now log in. 🎉", "success")
         return redirect(url_for("main.login"))
