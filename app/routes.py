@@ -11,7 +11,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from urllib.parse import urlparse, urljoin
 from itsdangerous import URLSafeTimedSerializer, SignatureExpired, BadSignature
 from flask_mail import Message as MailMessage
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, UTC
 
 from .models import (User, Post, Follow, Like, Comment, Notification,
                      Message, Reaction, Poll, PollOption, PollVote,
@@ -344,16 +344,21 @@ def send_confirmation_email(user_email, username):
     mail.send(msg)
 
 def cleanup_expired():
-    now = datetime.utcnow()
+    now = datetime.now(UTC)
     try:
         expired_stories = Story.query.filter(Story.expires_at <= now).all()
+
         for story in expired_stories:
-            StoryView.query.filter_by(story_id=story.id).delete()
+            StoryView.query.filter_by(story_id=story.id).delete(synchronize_session=False)
             db.session.delete(story)
+
         expired_thoughts = Thought.query.filter(Thought.expires_at <= now).all()
+
         for thought in expired_thoughts:
             db.session.delete(thought)
+
         db.session.commit()
+
     except Exception as e:
         db.session.rollback()
         print(f"Cleanup error: {e}")
@@ -921,19 +926,26 @@ def like_post(post_id):
 @main.route("/unlike/<int:post_id>")
 @login_required
 def unlike_post(post_id):
-    like = Like.query.filter_by(user_id=current_user.id, post_id=post_id).first()
+    like = Like.query.filter_by(
+        user_id=current_user.id,
+        post_id=post_id
+    ).first()
+
     if like:
-        post = Post.query.get(post_id)
+        post = db.session.get(Post, post_id)
+
         if post:
             Notification.query.filter_by(
-                user_id=post.user_id, actor_id=current_user.id,
-                type="like", post_id=post_id
-            ).delete()
+                user_id=post.user_id,
+                actor_id=current_user.id,
+                type="like",
+                post_id=post_id
+            ).delete(synchronize_session=False)
+
         db.session.delete(like)
         db.session.commit()
+
     return redirect(request.referrer or url_for("main.home"))
-
-
 @main.route("/react/<int:post_id>/<emoji>")
 @login_required
 def react_post(post_id, emoji):
