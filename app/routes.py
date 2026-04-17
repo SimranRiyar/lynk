@@ -346,14 +346,14 @@ def send_confirmation_email(user_email, username):
 def cleanup_expired():
     now = datetime.now(UTC)
     try:
+        # Delete story views first, then stories (avoids FK violation)
         expired_stories = Story.query.filter(Story.expires_at <= now).all()
-
         for story in expired_stories:
             StoryView.query.filter_by(story_id=story.id).delete(synchronize_session=False)
             db.session.delete(story)
 
+        # Delete expired thoughts
         expired_thoughts = Thought.query.filter(Thought.expires_at <= now).all()
-
         for thought in expired_thoughts:
             db.session.delete(thought)
 
