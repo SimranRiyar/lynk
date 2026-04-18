@@ -11,7 +11,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from urllib.parse import urlparse, urljoin
 from itsdangerous import URLSafeTimedSerializer, SignatureExpired, BadSignature
 from flask_mail import Message as MailMessage
-from datetime import datetime, timedelta, UTC
+from datetime import datetime, timedelta
 
 from .models import (User, Post, Follow, Like, Comment, Notification,
                      Message, Reaction, Poll, PollOption, PollVote,
@@ -24,6 +24,7 @@ from flask_socketio import emit, join_room, leave_room
 from apscheduler.schedulers.background import BackgroundScheduler
 import atexit
 from app.models import AgentTemplate
+
 
 def run_agent_scheduler(app):
     with app.app_context():
@@ -84,6 +85,7 @@ def start_agent_scheduler(app):
     else:
         print("⏳ Scheduler waiting for reloader...")
 
+
 main = Blueprint("main", __name__)
 
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
@@ -101,10 +103,13 @@ STORY_BG_COLORS = [
 
 from groq import Groq
 
+
 def get_groq():
     return Groq(api_key=os.environ.get("GROQ_API_KEY"))
 
+
 from functools import wraps
+
 
 def admin_required(f):
     @wraps(f)
@@ -113,6 +118,7 @@ def admin_required(f):
             abort(403)
         return f(*args, **kwargs)
     return decorated
+
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
@@ -144,10 +150,12 @@ def parse_mentions(content, post_id=None):
         user = User.query.filter_by(username=username).first()
         if user and user.id != current_user.id:
             create_notification(user_id=user.id, actor_id=current_user.id,
-                               type="mention", post_id=post_id)
+                                type="mention", post_id=post_id)
+
 
 def trigger_agent_mention_reply(app, agent_id, post_id, comment_content, mentioner_username):
     import threading
+
     def _reply():
         with app.app_context():
             from app.models import User, Post, Comment
@@ -159,7 +167,6 @@ def trigger_agent_mention_reply(app, agent_id, post_id, comment_content, mention
             post = Post.query.get(post_id)
             if not agent or not post or not agent.agent_is_active:
                 return
-
             try:
                 client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
                 prompt = (
@@ -181,31 +188,22 @@ def trigger_agent_mention_reply(app, agent_id, post_id, comment_content, mention
                 reply_text = resp.choices[0].message.content.strip()
                 if len(reply_text) > 500:
                     reply_text = reply_text[:497] + "..."
-
                 reply_with_tag = f"@{mentioner_username} {reply_text}"
-
-                comment = Comment(
-                    content=reply_with_tag,
-                    user_id=agent.id,
-                    post_id=post_id
-                )
+                comment = Comment(content=reply_with_tag, user_id=agent.id, post_id=post_id)
                 db.session.add(comment)
                 db.session.commit()
                 print(f"✅ Agent @{agent.username} replied to @{mentioner_username}'s mention")
-
             except Exception as e:
                 print(f"Agent mention reply error: {e}")
                 db.session.rollback()
 
     thread = threading.Thread(target=_reply, daemon=True)
     thread.start()
+
+
 def moderate_content(app, content, content_type, content_id):
-    """
-    Runs in background thread.
-    content_type: 'post' or 'comment'
-    content_id: the post.id or comment.id
-    """
     import threading
+
     def _moderate():
         with app.app_context():
             from app.models import Post, Comment
@@ -215,7 +213,6 @@ def moderate_content(app, content, content_type, content_id):
 
             if not content or len(content.strip()) < 10:
                 return
-
             try:
                 client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
                 prompt = (
@@ -248,7 +245,6 @@ def moderate_content(app, content, content_type, content_id):
                         decision = line.replace('DECISION:', '').strip()
                     elif line.startswith('REASON:'):
                         reason = line.replace('REASON:', '').strip()
-
                 if decision == 'FLAG' and reason != 'none':
                     if content_type == 'post':
                         obj = Post.query.get(content_id)
@@ -259,12 +255,13 @@ def moderate_content(app, content, content_type, content_id):
                         obj.flag_reason = reason[:300]
                         db.session.commit()
                         print(f"🚩 Flagged {content_type} {content_id}: {reason}")
-
             except Exception as e:
                 print(f"Moderation error: {e}")
 
     thread = threading.Thread(target=_moderate, daemon=True)
     thread.start()
+
+
 def parse_hashtags(content):
     if not content:
         return []
@@ -320,28 +317,6 @@ def confirm_token(token, expiration=3600):
     return email
 
 
-def send_confirmation_email(user_email, username):
-    token = generate_confirmation_token(user_email)
-    confirm_url = url_for("main.confirm_email", token=token, _external=True)
-    msg = MailMessage(
-        subject="Confirm your Lynk account ✨",
-        recipients=[user_email],
-        html=f"""
-        <div style="font-family:sans-serif;max-width:480px;margin:auto;padding:32px;
-                    border:1px solid #EDD9EA;border-radius:16px;">
-            <h2 style="color:#9B6FD4;">Welcome to Lynk ✨</h2>
-            <p>Hi <strong>{username}</strong>, please confirm your email.</p>
-            <a href="{confirm_url}"
-               style="background:linear-gradient(135deg,#9B6FD4,#E991C0);
-                      color:white;padding:14px 28px;border-radius:12px;
-                      text-decoration:none;font-weight:700;display:inline-block;margin-top:16px;">
-                Confirm Email →
-            </a>
-            <p style="color:#9B7EA0;font-size:13px;margin-top:24px;">This link expires in 1 hour.</p>
-        </div>
-        """
-    )
-    mail.send(msg)
 def send_email_via_brevo(to_email, to_name, subject, html_content):
     import requests
     api_key = os.environ.get("BREVO_API_KEY")
@@ -350,12 +325,9 @@ def send_email_via_brevo(to_email, to_name, subject, html_content):
         return False
     response = requests.post(
         "https://api.brevo.com/v3/smtp/email",
-        headers={
-            "api-key": api_key,
-            "Content-Type": "application/json"
-        },
+        headers={"api-key": api_key, "Content-Type": "application/json"},
         json={
-            "sender": {"name": "Lynk", "email": os.environ.get("MAIL_DEFAULT_SENDER")},
+            "sender": {"name": "Lynk", "email": os.environ.get("MAIL_DEFAULT_SENDER", "noreply@lynk.app")},
             "to": [{"email": to_email, "name": to_name}],
             "subject": subject,
             "htmlContent": html_content
@@ -367,22 +339,19 @@ def send_email_via_brevo(to_email, to_name, subject, html_content):
     else:
         print(f"❌ Brevo API error: {response.status_code} - {response.text}")
         return False
+
+
 def cleanup_expired():
-    now = datetime.now(UTC)
+    now = datetime.utcnow()
     try:
-        # Delete story views first, then stories (avoids FK violation)
         expired_stories = Story.query.filter(Story.expires_at <= now).all()
         for story in expired_stories:
             StoryView.query.filter_by(story_id=story.id).delete(synchronize_session=False)
             db.session.delete(story)
-
-        # Delete expired thoughts
         expired_thoughts = Thought.query.filter(Thought.expires_at <= now).all()
         for thought in expired_thoughts:
             db.session.delete(thought)
-
         db.session.commit()
-
     except Exception as e:
         db.session.rollback()
         print(f"Cleanup error: {e}")
@@ -416,6 +385,8 @@ def unlock_capsules():
         db.session.commit()
 
 
+# ── ROUTES ──────────────────────────────────────────────────────
+
 @main.route("/")
 def landing():
     if current_user.is_authenticated:
@@ -446,41 +417,40 @@ def register():
         if User.query.filter_by(email=email).first():
             flash("Email already registered.", "danger")
             return redirect(url_for("main.register"))
-        # Create user first — verified immediately, no email blocking
+
+        # Create user — verified immediately
         user = User(username=username, email=email,
-            password=generate_password_hash(password), is_verified=False)
+                    password=generate_password_hash(password), is_verified=True)
         db.session.add(user)
         db.session.commit()
 
-        # Send verification email via Brevo
-        token = generate_confirmation_token(email)
-        confirm_url = url_for("main.confirm_email", token=token, _external=True)
+        # Send welcome email via Brevo (non-blocking)
         try:
             send_email_via_brevo(
                 to_email=email,
                 to_name=username,
-                subject="Confirm your Lynk account ✨",
+                subject="Welcome to Lynk ✨",
                 html_content=f"""
                 <div style="font-family:sans-serif;max-width:480px;margin:auto;padding:32px;
                             border:1px solid #EDD9EA;border-radius:16px;">
-                     <h2 style="color:#9B6FD4;">Welcome to Lynk ✨</h2>
-                     <p>Hi <strong>{username}</strong>, please confirm your email to activate your account.</p>
-                     <a href="{confirm_url}"
-                        style="background:linear-gradient(135deg,#9B6FD4,#E991C0);
-                               color:white;padding:14px 28px;border-radius:12px;
-                               text-decoration:none;font-weight:700;display:inline-block;margin-top:16px;">
-                        Confirm Email →
-                     </a>
-                     <p style="color:#9B7EA0;font-size:13px;margin-top:24px;">This link expires in 1 hour.</p>
-               </div>
-            """
-          )
+                    <h2 style="color:#9B6FD4;">Welcome to Lynk ✨</h2>
+                    <p>Hi <strong>{username}</strong>, welcome aboard! Your account is ready.</p>
+                    <a href="https://web-production-cc865.up.railway.app/login"
+                       style="background:linear-gradient(135deg,#9B6FD4,#E991C0);
+                              color:white;padding:14px 28px;border-radius:12px;
+                              text-decoration:none;font-weight:700;display:inline-block;margin-top:16px;">
+                        Log in to Lynk →
+                    </a>
+                </div>
+                """
+            )
         except Exception as e:
-          print(f"Confirmation email failed: {e}")
+            print(f"Welcome email failed (non-blocking): {e}")
 
-        flash("Account created! Please check your email to confirm before logging in.", "success")
-        return redirect(url_for("main.login"))  
-        return render_template("register.html")
+        flash("Account created! You can now log in. 🎉", "success")
+        return redirect(url_for("main.login"))
+
+    return render_template("register.html")
 
 
 @main.route("/confirm/<token>", methods=["GET", "POST"])
@@ -522,18 +492,19 @@ def login():
             user.failed_login_attempts = 0
             user.locked_until = None
             if user.is_banned:
-                 flash(f"Your account has been banned. Reason: {user.ban_reason or 'Violation of community guidelines'}", "danger")
-                 return redirect(url_for("main.login"))
+                flash(f"Your account has been banned. Reason: {user.ban_reason or 'Violation of community guidelines'}", "danger")
+                return redirect(url_for("main.login"))
             if user.two_factor_enabled:
                 code = ''.join(random.choices(string.digits, k=6))
                 TwoFactorCode.query.filter_by(user_id=user.id).delete()
                 db.session.add(TwoFactorCode(user_id=user.id, code=code))
                 db.session.commit()
                 try:
-                    msg = MailMessage(
+                    send_email_via_brevo(
+                        to_email=user.email,
+                        to_name=user.username,
                         subject="Your Lynk login code 🔐",
-                        recipients=[user.email],
-                        html=f"""
+                        html_content=f"""
                         <div style="font-family:sans-serif;max-width:420px;margin:auto;
                                     padding:32px;border:1px solid #EDD9EA;border-radius:16px;">
                             <h2 style="color:#9B6FD4;">Your Login Code</h2>
@@ -546,11 +517,11 @@ def login():
                         </div>
                         """
                     )
-                    mail.send(msg)
                 except Exception as e:
                     print(f"2FA EMAIL ERROR: {e}")
                 session['2fa_user_id'] = user.id
                 return redirect(url_for("main.verify_2fa"))
+
             db.session.add(LoginHistory(
                 user_id=user.id,
                 ip_address=request.remote_addr,
@@ -558,6 +529,34 @@ def login():
             ))
             db.session.commit()
             login_user(user)
+
+            # Send login alert in background
+            import threading
+            _email = user.email
+            _username = user.username
+            _ip = request.remote_addr
+            _time = datetime.utcnow().strftime('%B %d, %Y at %H:%M UTC')
+
+            def _send_alert():
+                try:
+                    send_email_via_brevo(
+                        to_email=_email,
+                        to_name=_username,
+                        subject="New login to your Lynk account 🔔",
+                        html_content=f"""
+                        <div style="font-family:sans-serif;max-width:420px;margin:auto;
+                                    padding:32px;border:1px solid #EDD9EA;border-radius:16px;">
+                            <h2 style="color:#9B6FD4;">New Login Detected</h2>
+                            <p><strong>Time:</strong> {_time}</p>
+                            <p><strong>IP:</strong> {_ip}</p>
+                        </div>
+                        """
+                    )
+                except Exception as e:
+                    print(f"Login alert email failed: {e}")
+
+            threading.Thread(target=_send_alert, daemon=True).start()
+
             next_page = request.args.get("next")
             if next_page and is_safe_url(next_page):
                 return redirect(next_page)
@@ -602,22 +601,18 @@ def home():
     if current_user.id not in visible_ids:
         visible_ids.append(current_user.id)
 
-    from sqlalchemy import or_, and_, func, case
+    from sqlalchemy import or_, and_, func
 
-    # ── AI FEED RANKING ─────────────────────────────────────────
-    # Build interest profile from user's recent likes + reactions
     liked_post_ids = [l.post_id for l in current_user.likes[-50:]]
     reacted_post_ids = [r.post_id for r in current_user.reactions[-50:]]
     engaged_post_ids = set(liked_post_ids + reacted_post_ids)
 
-    # Find authors the user engages with most
     author_engagement = {}
     if engaged_post_ids:
         engaged_posts = Post.query.filter(Post.id.in_(engaged_post_ids)).all()
         for p in engaged_posts:
             author_engagement[p.user_id] = author_engagement.get(p.user_id, 0) + 1
 
-    # Score each candidate post
     candidate_posts = Post.query.filter(
         and_(
             Post.user_id.in_(visible_ids),
@@ -648,17 +643,13 @@ def home():
             score += 8
         return score
 
-    # Sort by score
     ranked = sorted(candidate_posts, key=score_post, reverse=True)
-
-    # Manual pagination on ranked list
     per_page = 5
     total = len(ranked)
     start = (page - 1) * per_page
     end = start + per_page
     page_items = ranked[start:end]
 
-    # Build a mock pagination object
     class RankedPage:
         def __init__(self, items, page, per_page, total):
             self.items = items
@@ -675,15 +666,14 @@ def home():
             last = 0
             for num in range(1, self.pages + 1):
                 if (num <= left_edge or
-                    (self.page - left_current - 1 < num < self.page + right_current) or
-                    num > self.pages - right_edge):
+                        (self.page - left_current - 1 < num < self.page + right_current) or
+                        num > self.pages - right_edge):
                     if last + 1 != num:
                         yield None
                     yield num
                     last = num
 
     posts = RankedPage(page_items, page, per_page, total)
-    # ─────────────────────────────────────────────────────────────
 
     suggestions = User.query.filter(
         User.id != current_user.id,
@@ -709,19 +699,19 @@ def home():
         Thought.expires_at > datetime.utcnow()
     ).order_by(Thought.created_at.desc()).all()
     since = datetime.utcnow() - timedelta(hours=24)
-    trending = db.session.query(Post, func.count(Like.id).label('like_count'))\
-        .join(Like, Like.post_id == Post.id)\
+    trending = db.session.query(Post, func.count(Like.id).label('like_count')) \
+        .join(Like, Like.post_id == Post.id) \
         .filter(Post.timestamp >= since, Post.is_private == False,
                 Post.user_id != current_user.id,
-                ~Post.user_id.in_(list(excluded_ids)))\
+                ~Post.user_id.in_(list(excluded_ids))) \
         .group_by(Post.id).order_by(func.count(Like.id).desc()).limit(3).all()
     since_1h = datetime.utcnow() - timedelta(hours=1)
-    recent_active = db.session.query(User)\
-        .join(Post, Post.user_id == User.id)\
+    recent_active = db.session.query(User) \
+        .join(Post, Post.user_id == User.id) \
         .filter(Post.timestamp >= since_1h,
                 User.id != current_user.id,
                 ~User.id.in_(list(excluded_ids)),
-                User.is_paused == False)\
+                User.is_paused == False) \
         .distinct().limit(6).all()
     from sqlalchemy.sql.expression import func as sqlfunc
     random_post = Post.query.filter(
@@ -744,12 +734,11 @@ def home():
                 hashtag_counts[t_lower] = hashtag_counts.get(t_lower, 0) + 1
     trending_hashtags = sorted(hashtag_counts.items(), key=lambda x: x[1], reverse=True)[:5]
     return render_template("index.html",
-        posts=posts, suggestions=suggestions,
-        story_users=story_users, thoughts=thoughts,
-        trending=trending, recent_active=recent_active,
-        random_post=random_post,
-        trending_hashtags=trending_hashtags
-    )
+                           posts=posts, suggestions=suggestions,
+                           story_users=story_users, thoughts=thoughts,
+                           trending=trending, recent_active=recent_active,
+                           random_post=random_post,
+                           trending_hashtags=trending_hashtags)
 
 
 @main.route("/story/create", methods=["GET", "POST"])
@@ -804,6 +793,7 @@ def delete_story(story_id):
     if story.user_id != current_user.id:
         flash("Unauthorized.", "danger")
         return redirect(url_for("main.home"))
+    StoryView.query.filter_by(story_id=story.id).delete(synchronize_session=False)
     db.session.delete(story)
     db.session.commit()
     flash("Story deleted.", "info")
@@ -886,14 +876,13 @@ def create_post():
         for opt_text in poll_options[:4]:
             db.session.add(PollOption(poll_id=poll.id, text=opt_text))
     db.session.commit()
-    # Moderate in background
     if content:
-          moderate_content(
-          app=current_app._get_current_object(),
-          content=content,
-          content_type='post',
-          content_id=post.id
-    )
+        moderate_content(
+            app=current_app._get_current_object(),
+            content=content,
+            content_type='post',
+            content_id=post.id
+        )
     return redirect(url_for("main.home"))
 
 
@@ -901,13 +890,12 @@ def create_post():
 @login_required
 def edit_post(post_id):
     post = Post.query.get_or_404(post_id)
-    if post.author != current_user:
+    if post.user_id != current_user.id:
         flash("Unauthorized action.", "danger")
         return redirect(url_for("main.home"))
     if request.method == "POST":
         content = request.form.get("content", "").strip()
-        is_private = request.form.get("is_private") == "1"
-        post.is_private = is_private
+        post.is_private = request.form.get("is_private") == "1"
         post.is_sensitive = request.form.get("is_sensitive") == "1"
         file = request.files.get("image")
         if file and file.filename != "" and allowed_file(file.filename):
@@ -948,7 +936,7 @@ def like_post(post_id):
     if not current_user.has_liked(post):
         db.session.add(Like(user_id=current_user.id, post_id=post.id))
         create_notification(user_id=post.author.id, actor_id=current_user.id,
-                           type="like", post_id=post.id)
+                            type="like", post_id=post.id)
         db.session.commit()
     return redirect(request.referrer or url_for("main.home"))
 
@@ -956,26 +944,19 @@ def like_post(post_id):
 @main.route("/unlike/<int:post_id>")
 @login_required
 def unlike_post(post_id):
-    like = Like.query.filter_by(
-        user_id=current_user.id,
-        post_id=post_id
-    ).first()
-
+    like = Like.query.filter_by(user_id=current_user.id, post_id=post_id).first()
     if like:
-        post = db.session.get(Post, post_id)
-
+        post = Post.query.get(post_id)
         if post:
             Notification.query.filter_by(
-                user_id=post.user_id,
-                actor_id=current_user.id,
-                type="like",
-                post_id=post_id
+                user_id=post.user_id, actor_id=current_user.id,
+                type="like", post_id=post_id
             ).delete(synchronize_session=False)
-
         db.session.delete(like)
         db.session.commit()
-
     return redirect(request.referrer or url_for("main.home"))
+
+
 @main.route("/react/<int:post_id>/<emoji>")
 @login_required
 def react_post(post_id, emoji):
@@ -991,7 +972,7 @@ def react_post(post_id, emoji):
     else:
         db.session.add(Reaction(user_id=current_user.id, post_id=post.id, emoji=emoji))
         create_notification(user_id=post.author.id, actor_id=current_user.id,
-                           type="reaction", post_id=post.id)
+                            type="reaction", post_id=post.id)
     db.session.commit()
     return redirect(request.referrer or url_for("main.home"))
 
@@ -1036,26 +1017,21 @@ def comment_post(post_id):
             db.session.add(comment)
             if post.author.id != current_user.id:
                 create_notification(user_id=post.author.id, actor_id=current_user.id,
-                                   type="comment", post_id=post.id)
+                                    type="comment", post_id=post.id)
             parse_mentions(content, post_id=post.id)
             db.session.commit()
-            # Moderate in background
             moderate_content(
-            app=current_app._get_current_object(),
-            content=content,
-            content_type='comment',
-            content_id=comment.id
-)
-
-            # ── AGENT MENTION DETECTION ──────────────────────────
+                app=current_app._get_current_object(),
+                content=content,
+                content_type='comment',
+                content_id=comment.id
+            )
             mentioned_usernames = re.findall(r'@(\w+)', content)
             for uname in set(mentioned_usernames):
                 if uname == current_user.username:
                     continue
                 mentioned_user = User.query.filter_by(username=uname).first()
-                if (mentioned_user
-                        and mentioned_user.is_agent
-                        and mentioned_user.agent_is_active):
+                if mentioned_user and mentioned_user.is_agent and mentioned_user.agent_is_active:
                     trigger_agent_mention_reply(
                         app=current_app._get_current_object(),
                         agent_id=mentioned_user.id,
@@ -1063,8 +1039,6 @@ def comment_post(post_id):
                         comment_content=content,
                         mentioner_username=current_user.username
                     )
-            # ─────────────────────────────────────────────────────
-
             flash("Comment added.", "success")
         return redirect(url_for("main.comment_post", post_id=post_id))
     if post.user_id != current_user.id:
@@ -1162,12 +1136,12 @@ def activity():
     ).order_by(Follow.timestamp.desc()).all()
     notifications = Notification.query.filter_by(
         user_id=current_user.id
-    ).filter(Notification.type != "follow_request")\
-     .order_by(Notification.timestamp.desc()).limit(50).all()
+    ).filter(Notification.type != "follow_request") \
+        .order_by(Notification.timestamp.desc()).limit(50).all()
     Notification.query.filter_by(user_id=current_user.id, is_read=False).update({"is_read": True})
     db.session.commit()
     return render_template("activity.html",
-        pending_requests=pending_requests, notifications=notifications)
+                           pending_requests=pending_requests, notifications=notifications)
 
 
 @main.route("/profile/<username>")
@@ -1266,7 +1240,7 @@ def ajax_like(post_id):
     else:
         db.session.add(Like(user_id=current_user.id, post_id=post.id))
         create_notification(user_id=post.author.id, actor_id=current_user.id,
-                           type="like", post_id=post.id)
+                            type="like", post_id=post.id)
         liked = True
     db.session.commit()
     return jsonify({"success": True, "liked": liked, "count": len(post.likes)})
@@ -1289,7 +1263,7 @@ def ajax_react(post_id, emoji):
     else:
         db.session.add(Reaction(user_id=current_user.id, post_id=post.id, emoji=emoji))
         create_notification(user_id=post.author.id, actor_id=current_user.id,
-                           type="reaction", post_id=post.id)
+                            type="reaction", post_id=post.id)
     db.session.commit()
     current_reaction = current_user.get_reaction(post)
     return jsonify({
@@ -1348,7 +1322,7 @@ def ajax_poll_vote(poll_id, option_id):
 @login_required
 def pin_post(post_id):
     post = Post.query.get_or_404(post_id)
-    if post.author != current_user:
+    if post.user_id != current_user.id:
         flash("Unauthorized.", "danger")
         return redirect(url_for("main.profile", username=current_user.username))
     if current_user.pinned_post_id == post_id:
@@ -1404,16 +1378,16 @@ def change_password():
     current_user.password = generate_password_hash(new_pw)
     db.session.commit()
     try:
-        msg = MailMessage(
+        send_email_via_brevo(
+            to_email=current_user.email,
+            to_name=current_user.username,
             subject="Your Lynk password was changed 🔐",
-            recipients=[current_user.email],
-            html=f"""<div style="font-family:sans-serif;max-width:420px;margin:auto;padding:32px;border:1px solid #EDD9EA;border-radius:16px;">
+            html_content=f"""<div style="font-family:sans-serif;max-width:420px;margin:auto;padding:32px;border:1px solid #EDD9EA;border-radius:16px;">
                 <h2 style="color:#9B6FD4;">Password Changed</h2>
                 <p>Your Lynk password was just changed.</p>
                 <p><strong>Time:</strong> {datetime.utcnow().strftime('%B %d, %Y at %H:%M UTC')}</p>
             </div>"""
         )
-        mail.send(msg)
     except:
         pass
     flash("Password changed successfully! 🔐", "success")
@@ -1470,16 +1444,16 @@ def change_email():
     db.session.commit()
     confirm_url = url_for("main.confirm_email_change", token=token, _external=True)
     try:
-        msg = MailMessage(
+        send_email_via_brevo(
+            to_email=new_email,
+            to_name=current_user.username,
             subject="Confirm your new Lynk email 📧",
-            recipients=[new_email],
-            html=f"""<div style="font-family:sans-serif;max-width:420px;margin:auto;padding:32px;border:1px solid #EDD9EA;border-radius:16px;">
+            html_content=f"""<div style="font-family:sans-serif;max-width:420px;margin:auto;padding:32px;border:1px solid #EDD9EA;border-radius:16px;">
                 <h2 style="color:#9B6FD4;">Confirm Email Change</h2>
                 <a href="{confirm_url}" style="background:linear-gradient(135deg,#9B6FD4,#E991C0);color:white;padding:14px 28px;border-radius:12px;text-decoration:none;font-weight:700;display:inline-block;margin-top:16px;">Confirm New Email →</a>
                 <p style="color:#9B7EA0;font-size:13px;margin-top:24px;">This link expires in 1 hour.</p>
             </div>"""
         )
-        mail.send(msg)
         flash(f"Confirmation email sent to {new_email}.", "success")
     except Exception as e:
         flash(f"Could not send email: {str(e)}", "danger")
@@ -1510,48 +1484,41 @@ def delete_account():
     if not check_password_hash(current_user.password, password):
         flash("Incorrect password.", "danger")
         return redirect(url_for("main.settings"))
-    
+
     user_id = current_user.id
     logout_user()
-    
+
     try:
-        # Delete all related records manually for PostgreSQL
-        # Notifications where user is actor
-        Notification.query.filter_by(actor_id=user_id).delete()
-        # Notifications where user is recipient  
-        Notification.query.filter_by(user_id=user_id).delete()
-        # Messages
-        Message.query.filter_by(sender_id=user_id).delete()
-        Message.query.filter_by(receiver_id=user_id).delete()
-        # Posts and related
+        Notification.query.filter_by(actor_id=user_id).delete(synchronize_session=False)
+        Notification.query.filter_by(user_id=user_id).delete(synchronize_session=False)
+        Message.query.filter_by(sender_id=user_id).delete(synchronize_session=False)
+        Message.query.filter_by(receiver_id=user_id).delete(synchronize_session=False)
         posts = Post.query.filter_by(user_id=user_id).all()
         for post in posts:
-            Like.query.filter_by(post_id=post.id).delete()
-            Comment.query.filter_by(post_id=post.id).delete()
-            Reaction.query.filter_by(post_id=post.id).delete()
-        Post.query.filter_by(user_id=user_id).delete()
-        # Follows
-        Follow.query.filter_by(follower_id=user_id).delete()
-        Follow.query.filter_by(followed_id=user_id).delete()
-        # Likes and reactions by user
-        Like.query.filter_by(user_id=user_id).delete()
-        Reaction.query.filter_by(user_id=user_id).delete()
-        # Comments by user
-        Comment.query.filter_by(user_id=user_id).delete()
-        # Reports
-        Report.query.filter_by(reporter_id=user_id).delete()
-        Report.query.filter_by(reported_id=user_id).delete()
-        # Blocks and mutes
-        Block.query.filter_by(blocker_id=user_id).delete()
-        Block.query.filter_by(blocked_id=user_id).delete()
-        Mute.query.filter_by(muter_id=user_id).delete()
-        Mute.query.filter_by(muted_id=user_id).delete()
-        # Login history
-        LoginHistory.query.filter_by(user_id=user_id).delete()
-        # Profile views
-        ProfileView.query.filter_by(profile_id=user_id).delete()
-        ProfileView.query.filter_by(viewer_id=user_id).delete()
-        # Finally delete user
+            Like.query.filter_by(post_id=post.id).delete(synchronize_session=False)
+            Comment.query.filter_by(post_id=post.id).delete(synchronize_session=False)
+            Reaction.query.filter_by(post_id=post.id).delete(synchronize_session=False)
+            PostView.query.filter_by(post_id=post.id).delete(synchronize_session=False)
+        Post.query.filter_by(user_id=user_id).delete(synchronize_session=False)
+        Follow.query.filter_by(follower_id=user_id).delete(synchronize_session=False)
+        Follow.query.filter_by(followed_id=user_id).delete(synchronize_session=False)
+        Like.query.filter_by(user_id=user_id).delete(synchronize_session=False)
+        Reaction.query.filter_by(user_id=user_id).delete(synchronize_session=False)
+        Comment.query.filter_by(user_id=user_id).delete(synchronize_session=False)
+        Report.query.filter_by(reporter_id=user_id).delete(synchronize_session=False)
+        Report.query.filter_by(reported_id=user_id).delete(synchronize_session=False)
+        Block.query.filter_by(blocker_id=user_id).delete(synchronize_session=False)
+        Block.query.filter_by(blocked_id=user_id).delete(synchronize_session=False)
+        Mute.query.filter_by(muter_id=user_id).delete(synchronize_session=False)
+        Mute.query.filter_by(muted_id=user_id).delete(synchronize_session=False)
+        LoginHistory.query.filter_by(user_id=user_id).delete(synchronize_session=False)
+        ProfileView.query.filter_by(profile_id=user_id).delete(synchronize_session=False)
+        ProfileView.query.filter_by(viewer_id=user_id).delete(synchronize_session=False)
+        PostView.query.filter_by(user_id=user_id).delete(synchronize_session=False)
+        stories = Story.query.filter_by(user_id=user_id).all()
+        for story in stories:
+            StoryView.query.filter_by(story_id=story.id).delete(synchronize_session=False)
+        Story.query.filter_by(user_id=user_id).delete(synchronize_session=False)
         user = User.query.get(user_id)
         if user:
             db.session.delete(user)
@@ -1561,8 +1528,6 @@ def delete_account():
         db.session.rollback()
         print(f"Delete account error: {e}")
         flash("Error deleting account. Please try again.", "danger")
-        return redirect(url_for("main.landing"))
-    
     return redirect(url_for("main.landing"))
 
 
@@ -1572,9 +1537,12 @@ def settings():
     login_logs = LoginHistory.query.filter_by(
         user_id=current_user.id
     ).order_by(LoginHistory.timestamp.desc()).limit(10).all()
-    blocked_users = [User.query.get(b.blocked_id) for b in current_user.blocks_made.order_by(Block.created_at.desc()).all()]
-    muted_users = [User.query.get(m.muted_id) for m in current_user.mutes_made.order_by(Mute.created_at.desc()).all()]
-    return render_template("settings.html", login_logs=login_logs, blocked_users=blocked_users, muted_users=muted_users)
+    blocked_users = [User.query.get(b.blocked_id) for b in
+                     current_user.blocks_made.order_by(Block.created_at.desc()).all()]
+    muted_users = [User.query.get(m.muted_id) for m in
+                   current_user.mutes_made.order_by(Mute.created_at.desc()).all()]
+    return render_template("settings.html", login_logs=login_logs,
+                           blocked_users=blocked_users, muted_users=muted_users)
 
 
 @main.route("/search")
@@ -1608,15 +1576,15 @@ def explore():
     blocked_by_ids = {b.blocker_id for b in current_user.blocks_received}
     excluded = blocked_ids | blocked_by_ids
     since_7d = datetime.utcnow() - timedelta(days=7)
-    trending_posts = db.session.query(Post, func.count(Like.id).label('like_count'))\
-        .outerjoin(Like, Like.post_id == Post.id)\
+    trending_posts = db.session.query(Post, func.count(Like.id).label('like_count')) \
+        .outerjoin(Like, Like.post_id == Post.id) \
         .filter(Post.is_private == False, Post.timestamp >= since_7d,
-                ~Post.user_id.in_(list(excluded)))\
+                ~Post.user_id.in_(list(excluded))) \
         .group_by(Post.id).order_by(func.count(Like.id).desc()).limit(12).all()
-    people = db.session.query(User, func.count(Follow.follower_id).label('follower_count'))\
-        .outerjoin(Follow, (Follow.followed_id == User.id) & (Follow.status == 'accepted'))\
+    people = db.session.query(User, func.count(Follow.follower_id).label('follower_count')) \
+        .outerjoin(Follow, (Follow.followed_id == User.id) & (Follow.status == 'accepted')) \
         .filter(User.id != current_user.id, ~User.id.in_(followed_ids),
-                ~User.id.in_(list(excluded)), User.is_paused == False)\
+                ~User.id.in_(list(excluded)), User.is_paused == False) \
         .group_by(User.id).order_by(func.count(Follow.follower_id).desc()).limit(12).all()
     recent_posts = Post.query.filter(
         Post.is_private == False, Post.timestamp >= since_7d, Post.content.isnot(None)
@@ -1630,13 +1598,15 @@ def explore():
                 hashtag_counts[t_lower] = hashtag_counts.get(t_lower, 0) + 1
     trending_hashtags = sorted(hashtag_counts.items(), key=lambda x: x[1], reverse=True)[:10]
     return render_template("explore.html",
-        trending_posts=trending_posts, people=people, trending_hashtags=trending_hashtags)
+                           trending_posts=trending_posts, people=people,
+                           trending_hashtags=trending_hashtags)
 
 
 @main.route("/messages")
 @login_required
 def inbox():
     return redirect(url_for("main.messages_home"))
+
 
 @main.route("/messages/home")
 @login_required
@@ -1663,9 +1633,7 @@ def messages_home():
                 )
             ).order_by(Message.timestamp.desc()).first()
             unread = Message.query.filter_by(
-                sender_id=other_id,
-                receiver_id=current_user.id,
-                is_read=False
+                sender_id=other_id, receiver_id=current_user.id, is_read=False
             ).count()
             partners.append({"user": other, "last_msg": last_msg, "unread": unread})
     return render_template("messages_home.html", partners=partners, active_user=None)
@@ -1684,24 +1652,19 @@ def conversation(username):
     if request.method == "POST":
         content = request.form.get("content", "").strip()
         if content:
-            msg = Message(sender_id=current_user.id,
-                         receiver_id=other.id, content=content)
+            msg = Message(sender_id=current_user.id, receiver_id=other.id, content=content)
             db.session.add(msg)
             db.session.commit()
             socketio.emit("message_notification", {
                 "from_username": current_user.username,
                 "from_display": current_user.display_name or current_user.username,
                 "unread": Message.query.filter_by(
-                    sender_id=current_user.id,
-                    receiver_id=other.id,
-                    is_read=False
+                    sender_id=current_user.id, receiver_id=other.id, is_read=False
                 ).count()
             }, room=f"user_{other.id}")
         return redirect(url_for("main.conversation", username=username))
     Message.query.filter_by(
-        sender_id=other.id,
-        receiver_id=current_user.id,
-        is_read=False
+        sender_id=other.id, receiver_id=current_user.id, is_read=False
     ).update({"is_read": True})
     db.session.commit()
     from sqlalchemy import or_
@@ -1711,12 +1674,12 @@ def conversation(username):
             (Message.sender_id == other.id) & (Message.receiver_id == current_user.id)
         )
     ).order_by(Message.timestamp.asc()).all()
-    # Build partners list for left panel
     blocked_ids = {b.blocked_id for b in current_user.blocks_made}
     blocked_by_ids = {b.blocker_id for b in current_user.blocks_received}
     excluded = blocked_ids | blocked_by_ids
+    from sqlalchemy import or_ as or2
     all_convos = db.session.query(Message).filter(
-        or_(Message.sender_id == current_user.id,
+        or2(Message.sender_id == current_user.id,
             Message.receiver_id == current_user.id)
     ).order_by(Message.timestamp.desc()).all()
     seen = set()
@@ -1727,20 +1690,19 @@ def conversation(username):
             seen.add(other_id)
             u = User.query.get(other_id)
             last_msg = Message.query.filter(
-                or_(
+                or2(
                     (Message.sender_id == current_user.id) & (Message.receiver_id == other_id),
                     (Message.sender_id == other_id) & (Message.receiver_id == current_user.id)
                 )
             ).order_by(Message.timestamp.desc()).first()
             unread = Message.query.filter_by(
-                sender_id=other_id,
-                receiver_id=current_user.id,
-                is_read=False
+                sender_id=other_id, receiver_id=current_user.id, is_read=False
             ).count()
             partners.append({"user": u, "last_msg": last_msg, "unread": unread})
     return render_template("conversation.html",
-        other=other, messages=messages,
-        partners=partners, active_user=other)
+                           other=other, messages=messages,
+                           partners=partners, active_user=other)
+
 
 @main.route("/messages/send-media/<username>", methods=["POST"])
 @login_required
@@ -1756,14 +1718,10 @@ def send_media_message(username):
     allowed_audio = {'webm', 'mp3', 'ogg', 'm4a', 'wav'}
     if ext in allowed_img:
         msg_type = 'image'
-        filename = secure_filename(
-            f"dm_img_{current_user.id}_{int(datetime.utcnow().timestamp())}.{ext}"
-        )
+        filename = secure_filename(f"dm_img_{current_user.id}_{int(datetime.utcnow().timestamp())}.{ext}")
     elif ext in allowed_audio:
         msg_type = 'audio'
-        filename = secure_filename(
-            f"dm_audio_{current_user.id}_{int(datetime.utcnow().timestamp())}.{ext}"
-        )
+        filename = secure_filename(f"dm_audio_{current_user.id}_{int(datetime.utcnow().timestamp())}.{ext}")
     else:
         return jsonify({"error": "File type not allowed"}), 400
     upload_folder = os.path.join(current_app.root_path, "static", "uploads")
@@ -1779,22 +1737,20 @@ def send_media_message(username):
     db.session.add(msg)
     db.session.commit()
     socketio.emit("new_message", {
-        "id": msg.id,
-        "content": msg.content,
+        "id": msg.id, "content": msg.content,
         "sender_username": current_user.username,
         "sender_display": current_user.display_name or current_user.username,
         "sender_pic": current_user.profile_pic,
         "timestamp": msg.timestamp.strftime("%H:%M"),
-        "is_mine": False,
-        "msg_type": msg_type,
+        "is_mine": False, "msg_type": msg_type,
         "media_url": f"/static/uploads/{filename}"
     }, room=f"user_{other.id}")
     return jsonify({
-        "success": True,
-        "msg_type": msg_type,
+        "success": True, "msg_type": msg_type,
         "media_url": f"/static/uploads/{filename}",
         "timestamp": msg.timestamp.strftime("%H:%M")
     })
+
 
 @main.route("/capsule/create", methods=["GET", "POST"])
 @login_required
@@ -1825,13 +1781,14 @@ def create_capsule():
             upload_folder = os.path.join(current_app.root_path, "static", "uploads")
             os.makedirs(upload_folder, exist_ok=True)
             file.save(os.path.join(upload_folder, image_filename))
-        capsule = MemoryCapsule(user_id=current_user.id, content=content, image=image_filename, unlock_at=unlock_at)
+        capsule = MemoryCapsule(user_id=current_user.id, content=content,
+                                image=image_filename, unlock_at=unlock_at)
         db.session.add(capsule)
         db.session.commit()
         flash(f"🔒 Memory capsule sealed! It opens on {capsule.unlock_date_str()}.", "success")
         return redirect(url_for("main.my_capsules"))
     min_date = (datetime.utcnow() + timedelta(days=1)).strftime("%Y-%m-%d")
-    max_date = (datetime.utcnow() + timedelta(days=365*5)).strftime("%Y-%m-%d")
+    max_date = (datetime.utcnow() + timedelta(days=365 * 5)).strftime("%Y-%m-%d")
     return render_template("create_capsule.html", min_date=min_date, max_date=max_date)
 
 
@@ -1839,7 +1796,8 @@ def create_capsule():
 @login_required
 def my_capsules():
     unlock_capsules()
-    capsules = MemoryCapsule.query.filter_by(user_id=current_user.id).order_by(MemoryCapsule.unlock_at.asc()).all()
+    capsules = MemoryCapsule.query.filter_by(user_id=current_user.id).order_by(
+        MemoryCapsule.unlock_at.asc()).all()
     return render_template("capsules.html", capsules=capsules)
 
 
@@ -1932,7 +1890,8 @@ def report_user(username):
         if not reason:
             flash("Please select a reason.", "danger")
             return redirect(url_for("main.report_user", username=username))
-        existing = Report.query.filter_by(reporter_id=current_user.id, reported_id=user.id, post_id=None).first()
+        existing = Report.query.filter_by(reporter_id=current_user.id, reported_id=user.id,
+                                          post_id=None).first()
         if existing:
             flash("You've already reported this user.", "info")
         else:
@@ -1982,17 +1941,19 @@ def profile_viewers():
     return render_template("profile_viewers.html", viewers=viewers)
 
 
-# ── PHASE 20 — AI AGENTS ─────────────────────────────────────────
+# ── AI ROUTES ────────────────────────────────────────────────────
 
 @main.route("/ai")
 @login_required
 def ai_chat():
     return render_template("ai.html")
 
+
 @main.route("/ai/dm")
 @login_required
 def ai_dm():
     return render_template("ai_dm.html")
+
 
 @main.route("/ai/chat", methods=["POST"])
 @login_required
@@ -2010,22 +1971,21 @@ def ai_chat_send():
         resp = client.chat.completions.create(
             model="llama-3.3-70b-versatile",
             max_tokens=1024,
-            messages=[
-                {
-                    "role": "system",
-                    "content": (
-                        f"You are Lynk AI — a friendly, witty, and helpful assistant "
-                        f"built into Lynk, a social networking app. "
-                        f"The user's name is {current_user.display_name or current_user.username}. "
-                        f"Keep responses concise and conversational. Use emojis occasionally."
-                    )
-                }
-            ] + valid,
+            messages=[{
+                "role": "system",
+                "content": (
+                    f"You are Lynk AI — a friendly, witty, and helpful assistant "
+                    f"built into Lynk, a social networking app. "
+                    f"The user's name is {current_user.display_name or current_user.username}. "
+                    f"Keep responses concise and conversational. Use emojis occasionally."
+                )
+            }] + valid,
         )
         return jsonify({"reply": resp.choices[0].message.content})
     except Exception as e:
         print(f"AI CHAT ERROR: {e}")
         return jsonify({"error": str(e)}), 500
+
 
 @main.route("/ai/caption", methods=["POST"])
 @login_required
@@ -2041,10 +2001,8 @@ def ai_caption():
             max_tokens=300,
             messages=[{"role": "user", "content": (
                 f"Generate 3 short engaging social media captions for a post about: {topic}\n"
-                f"- Each caption max 2 sentences\n"
-                f"- Include 2-3 hashtags at the end of each\n"
-                f"- Separate each caption with a blank line\n"
-                f"- No numbering, no labels, just the captions\n"
+                f"- Each caption max 2 sentences\n- Include 2-3 hashtags at the end of each\n"
+                f"- Separate each caption with a blank line\n- No numbering, no labels, just the captions\n"
                 f"- Mix tones: one casual, one inspirational, one fun"
             )}]
         )
@@ -2052,8 +2010,8 @@ def ai_caption():
         captions = [c.strip() for c in captions_text.split("\n\n") if c.strip()]
         return jsonify({"captions": captions[:3]})
     except Exception as e:
-        print(f"AI CAPTION ERROR: {e}")
         return jsonify({"error": str(e)}), 500
+
 
 @main.route("/ai/bio", methods=["POST"])
 @login_required
@@ -2066,24 +2024,17 @@ def ai_bio():
         prompt = f"Write 3 different short bio options for a social media profile.\nUsername: {username}\n"
         if interests:
             prompt += f"Interests: {interests}\n"
-        prompt += (
-            "- Each bio under 150 characters\n"
-            "- First-person voice\n"
-            "- Include 1-2 emojis per bio\n"
-            "- Separate each bio with a blank line\n"
-            "- No numbering, just the bios"
-        )
+        prompt += "- Each bio under 150 characters\n- First-person voice\n- Include 1-2 emojis per bio\n- Separate each bio with a blank line\n- No numbering, just the bios"
         resp = client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
-            max_tokens=300,
+            model="llama-3.3-70b-versatile", max_tokens=300,
             messages=[{"role": "user", "content": prompt}]
         )
         bios_text = resp.choices[0].message.content.strip()
         bios = [b.strip() for b in bios_text.split("\n\n") if b.strip()]
         return jsonify({"bios": bios[:3]})
     except Exception as e:
-        print(f"AI BIO ERROR: {e}")
         return jsonify({"error": str(e)}), 500
+
 
 @main.route("/ai/hashtags", methods=["POST"])
 @login_required
@@ -2095,21 +2046,18 @@ def ai_hashtags():
     try:
         client = get_groq()
         resp = client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
-            max_tokens=150,
+            model="llama-3.3-70b-versatile", max_tokens=150,
             messages=[{"role": "user", "content": (
                 f"Suggest 8 relevant hashtags for this social media post:\n\n{content}\n\n"
-                f"- Return ONLY hashtags, one per line\n"
-                f"- Include the # symbol\n"
-                f"- No explanations, no numbering"
+                f"- Return ONLY hashtags, one per line\n- Include the # symbol\n- No explanations, no numbering"
             )}]
         )
         tags_text = resp.choices[0].message.content.strip()
         tags = [t.strip() for t in tags_text.split("\n") if t.strip().startswith("#")]
         return jsonify({"hashtags": tags[:8]})
     except Exception as e:
-        print(f"AI HASHTAGS ERROR: {e}")
         return jsonify({"error": str(e)}), 500
+
 
 @main.route("/ai/smart-reply", methods=["POST"])
 @login_required
@@ -2121,25 +2069,21 @@ def ai_smart_reply():
     try:
         client = get_groq()
         resp = client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
-            max_tokens=150,
+            model="llama-3.3-70b-versatile", max_tokens=150,
             messages=[{"role": "user", "content": (
                 f"Someone sent this message in a private chat: \"{message}\"\n\n"
                 f"Generate exactly 3 short, natural reply suggestions.\n"
-                f"Rules:\n"
-                f"- Each reply max 8 words\n"
-                f"- Casual, conversational tone\n"
+                f"Rules:\n- Each reply max 8 words\n- Casual, conversational tone\n"
                 f"- One per line, no numbering, no quotes\n"
-                f"- Mix tones: one warm, one casual, one funny/witty\n"
-                f"- Just the reply text, nothing else"
+                f"- Mix tones: one warm, one casual, one funny/witty\n- Just the reply text, nothing else"
             )}]
         )
         text = resp.choices[0].message.content.strip()
         replies = [r.strip() for r in text.split("\n") if r.strip()][:3]
         return jsonify({"replies": replies})
     except Exception as e:
-        print(f"SMART REPLY ERROR: {e}")
         return jsonify({"error": str(e)}), 500
+
 
 @main.route("/ai/post-ideas", methods=["POST"])
 @login_required
@@ -2150,33 +2094,22 @@ def ai_post_ideas():
     username = current_user.display_name or current_user.username
     try:
         client = get_groq()
-        prompt = (
-            f"Generate 5 short social media post ideas for a user named {username}.\n"
-        )
+        prompt = f"Generate 5 short social media post ideas for a user named {username}.\n"
         if mood:
             prompt += f"Their current mood: {mood}\n"
         if interests:
             prompt += f"Their interests: {interests}\n"
-        prompt += (
-            "Rules:\n"
-            "- Each idea is ONE sentence max, under 120 chars\n"
-            "- Make them specific and interesting, not generic\n"
-            "- No hashtags, no numbering, no bullet points\n"
-            "- Each idea on its own line\n"
-            "- Mix styles: one funny, one deep, one casual, one observational, one personal\n"
-            "- Just the ideas, nothing else"
-        )
+        prompt += "Rules:\n- Each idea is ONE sentence max, under 120 chars\n- Make them specific and interesting, not generic\n- No hashtags, no numbering, no bullet points\n- Each idea on its own line\n- Just the ideas, nothing else"
         resp = client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
-            max_tokens=300,
+            model="llama-3.3-70b-versatile", max_tokens=300,
             messages=[{"role": "user", "content": prompt}]
         )
         text = resp.choices[0].message.content.strip()
         ideas = [i.strip() for i in text.split("\n") if i.strip()][:5]
         return jsonify({"ideas": ideas})
     except Exception as e:
-        print(f"POST IDEAS ERROR: {e}")
         return jsonify({"error": str(e)}), 500
+
 
 @main.route("/share/post/<int:post_id>", methods=["POST"])
 @login_required
@@ -2192,8 +2125,6 @@ def share_post_dm(post_id):
         return jsonify({"error": "Not mutual followers"}), 403
     if current_user.is_blocking(recipient) or recipient.is_blocking(current_user):
         return jsonify({"error": "Blocked"}), 403
-
-    # Create a post_share type message
     preview = (post.content or "📷 Photo")[:100]
     author = post.author.display_name or post.author.username
     msg = Message(
@@ -2209,44 +2140,33 @@ def share_post_dm(post_id):
         "from_username": current_user.username,
         "from_display": current_user.display_name or current_user.username,
         "unread": Message.query.filter_by(
-            sender_id=current_user.id,
-            receiver_id=recipient.id,
-            is_read=False
+            sender_id=current_user.id, receiver_id=recipient.id, is_read=False
         ).count()
     }, room=f"user_{recipient.id}")
     return jsonify({"success": True})
+
 
 @main.route("/api/mutual-friends")
 @login_required
 def api_mutual_friends():
     mutual = []
-    following_ids = [
-        f.followed_id for f in
-        current_user.following.filter_by(status="accepted").all()
-    ]
+    following_ids = [f.followed_id for f in current_user.following.filter_by(status="accepted").all()]
     for uid in following_ids:
         user = User.query.get(uid)
         if not user or user.is_agent or user.id == current_user.id:
             continue
         follows_back = Follow.query.filter_by(
-            follower_id=uid,
-            followed_id=current_user.id,
-            status="accepted"
+            follower_id=uid, followed_id=current_user.id, status="accepted"
         ).first()
         if not follows_back:
             continue
-        if user.profile_pic and user.profile_pic != "default.jpg":
-            pic = "/static/uploads/" + user.profile_pic
-        else:
-            pic = "/static/img/default_avatar.svg"
-        mutual.append({
-            "username": user.username,
-            "display": user.display_name or user.username,
-            "pic": pic
-        })
+        pic = "/static/uploads/" + user.profile_pic if (
+                    user.profile_pic and user.profile_pic != "default.jpg") else "/static/img/default_avatar.svg"
+        mutual.append({"username": user.username, "display": user.display_name or user.username, "pic": pic})
     return jsonify({"friends": mutual})
 
-# ── PHASE 22 — ADMIN PANEL ───────────────────────────────────
+
+# ── ADMIN PANEL ──────────────────────────────────────────────────
 
 @main.route("/admin")
 @login_required
@@ -2259,30 +2179,17 @@ def admin_dashboard():
     total_agents = User.query.filter_by(is_agent=True).count()
     banned_users = User.query.filter_by(is_banned=True).count()
     since_7d = datetime.utcnow() - timedelta(days=7)
-    new_users_week = User.query.filter(
-        User.created_at >= since_7d,
-        User.is_agent == False
-    ).count()
-    new_posts_week = Post.query.filter(
-        Post.timestamp >= since_7d
-    ).count()
-    recent_reports = Report.query.filter_by(
-        status="pending"
-    ).order_by(Report.created_at.desc()).limit(5).all()
-    recent_users = User.query.filter_by(
-        is_agent=False
-    ).order_by(User.created_at.desc()).limit(5).all()
+    new_users_week = User.query.filter(User.created_at >= since_7d, User.is_agent == False).count()
+    new_posts_week = Post.query.filter(Post.timestamp >= since_7d).count()
+    recent_reports = Report.query.filter_by(status="pending").order_by(
+        Report.created_at.desc()).limit(5).all()
+    recent_users = User.query.filter_by(is_agent=False).order_by(User.created_at.desc()).limit(5).all()
     return render_template("admin/dashboard.html",
-        total_users=total_users,
-        total_posts=total_posts,
-        total_reports=total_reports,
-        total_agents=total_agents,
-        banned_users=banned_users,
-        new_users_week=new_users_week,
-        new_posts_week=new_posts_week,
-        recent_reports=recent_reports,
-        recent_users=recent_users
-    )
+                           total_users=total_users, total_posts=total_posts,
+                           total_reports=total_reports, total_agents=total_agents,
+                           banned_users=banned_users, new_users_week=new_users_week,
+                           new_posts_week=new_posts_week, recent_reports=recent_reports,
+                           recent_users=recent_users)
 
 
 @main.route("/admin/users")
@@ -2294,9 +2201,7 @@ def admin_users():
     query = User.query.filter_by(is_agent=False)
     if search:
         query = query.filter(User.username.ilike(f"%{search}%"))
-    users = query.order_by(User.created_at.desc()).paginate(
-        page=page, per_page=20, error_out=False
-    )
+    users = query.order_by(User.created_at.desc()).paginate(page=page, per_page=20, error_out=False)
     return render_template("admin/users.html", users=users, search=search)
 
 
@@ -2337,30 +2242,36 @@ def admin_delete_user(user_id):
         flash("Cannot delete another admin.", "danger")
         return redirect(url_for("main.admin_users"))
     try:
-        Notification.query.filter_by(actor_id=user_id).delete()
-        Notification.query.filter_by(user_id=user_id).delete()
-        Message.query.filter_by(sender_id=user_id).delete()
-        Message.query.filter_by(receiver_id=user_id).delete()
+        Notification.query.filter_by(actor_id=user_id).delete(synchronize_session=False)
+        Notification.query.filter_by(user_id=user_id).delete(synchronize_session=False)
+        Message.query.filter_by(sender_id=user_id).delete(synchronize_session=False)
+        Message.query.filter_by(receiver_id=user_id).delete(synchronize_session=False)
         posts = Post.query.filter_by(user_id=user_id).all()
         for post in posts:
-            Like.query.filter_by(post_id=post.id).delete()
-            Comment.query.filter_by(post_id=post.id).delete()
-            Reaction.query.filter_by(post_id=post.id).delete()
-        Post.query.filter_by(user_id=user_id).delete()
-        Follow.query.filter_by(follower_id=user_id).delete()
-        Follow.query.filter_by(followed_id=user_id).delete()
-        Like.query.filter_by(user_id=user_id).delete()
-        Reaction.query.filter_by(user_id=user_id).delete()
-        Comment.query.filter_by(user_id=user_id).delete()
-        Report.query.filter_by(reporter_id=user_id).delete()
-        Report.query.filter_by(reported_id=user_id).delete()
-        Block.query.filter_by(blocker_id=user_id).delete()
-        Block.query.filter_by(blocked_id=user_id).delete()
-        Mute.query.filter_by(muter_id=user_id).delete()
-        Mute.query.filter_by(muted_id=user_id).delete()
-        LoginHistory.query.filter_by(user_id=user_id).delete()
-        ProfileView.query.filter_by(profile_id=user_id).delete()
-        ProfileView.query.filter_by(viewer_id=user_id).delete()
+            Like.query.filter_by(post_id=post.id).delete(synchronize_session=False)
+            Comment.query.filter_by(post_id=post.id).delete(synchronize_session=False)
+            Reaction.query.filter_by(post_id=post.id).delete(synchronize_session=False)
+            PostView.query.filter_by(post_id=post.id).delete(synchronize_session=False)
+        Post.query.filter_by(user_id=user_id).delete(synchronize_session=False)
+        Follow.query.filter_by(follower_id=user_id).delete(synchronize_session=False)
+        Follow.query.filter_by(followed_id=user_id).delete(synchronize_session=False)
+        Like.query.filter_by(user_id=user_id).delete(synchronize_session=False)
+        Reaction.query.filter_by(user_id=user_id).delete(synchronize_session=False)
+        Comment.query.filter_by(user_id=user_id).delete(synchronize_session=False)
+        Report.query.filter_by(reporter_id=user_id).delete(synchronize_session=False)
+        Report.query.filter_by(reported_id=user_id).delete(synchronize_session=False)
+        Block.query.filter_by(blocker_id=user_id).delete(synchronize_session=False)
+        Block.query.filter_by(blocked_id=user_id).delete(synchronize_session=False)
+        Mute.query.filter_by(muter_id=user_id).delete(synchronize_session=False)
+        Mute.query.filter_by(muted_id=user_id).delete(synchronize_session=False)
+        LoginHistory.query.filter_by(user_id=user_id).delete(synchronize_session=False)
+        ProfileView.query.filter_by(profile_id=user_id).delete(synchronize_session=False)
+        ProfileView.query.filter_by(viewer_id=user_id).delete(synchronize_session=False)
+        PostView.query.filter_by(user_id=user_id).delete(synchronize_session=False)
+        stories = Story.query.filter_by(user_id=user_id).all()
+        for story in stories:
+            StoryView.query.filter_by(story_id=story.id).delete(synchronize_session=False)
+        Story.query.filter_by(user_id=user_id).delete(synchronize_session=False)
         db.session.delete(user)
         db.session.commit()
         flash("User deleted permanently.", "success")
@@ -2379,12 +2290,8 @@ def admin_reports():
     query = Report.query
     if status_filter != "all":
         query = query.filter_by(status=status_filter)
-    reports = query.order_by(Report.created_at.desc()).paginate(
-        page=page, per_page=20, error_out=False
-    )
-    return render_template("admin/reports.html",
-        reports=reports, status_filter=status_filter
-    )
+    reports = query.order_by(Report.created_at.desc()).paginate(page=page, per_page=20, error_out=False)
+    return render_template("admin/reports.html", reports=reports, status_filter=status_filter)
 
 
 @main.route("/admin/reports/<int:report_id>/resolve", methods=["POST"])
@@ -2436,11 +2343,8 @@ def admin_posts():
         query = query.filter(Post.content.ilike(f"%{search}%"))
     if flagged_only:
         query = query.filter(Post.is_flagged == True)
-    posts = query.order_by(Post.timestamp.desc()).paginate(
-        page=page, per_page=20, error_out=False
-    )
+    posts = query.order_by(Post.timestamp.desc()).paginate(page=page, per_page=20, error_out=False)
     return render_template("admin/posts.html", posts=posts, search=search, flagged_only=flagged_only)
-    
 
 
 @main.route("/admin/posts/<int:post_id>/delete", methods=["POST"])
@@ -2453,220 +2357,108 @@ def admin_delete_post(post_id):
     flash("Post deleted.", "success")
     return redirect(url_for("main.admin_posts"))
 
+
 def send_weekly_digest(app):
     with app.app_context():
         from app.models import User, Post, Follow, Like, Notification
-        from app.extensions import db, mail
-        from flask_mail import Message as MailMessage
+        from app.extensions import db
         from groq import Groq
         from datetime import datetime, timedelta
         import os
 
         now = datetime.utcnow()
         since = now - timedelta(days=7)
-
-        users = User.query.filter_by(
-            is_verified=True,
-            is_paused=False,
-            is_agent=False
-        ).all()
+        users = User.query.filter_by(is_verified=True, is_paused=False, is_agent=False).all()
 
         for user in users:
             try:
-                # Gather user's week data
                 new_followers = Follow.query.filter(
-                    Follow.followed_id == user.id,
-                    Follow.status == 'accepted',
+                    Follow.followed_id == user.id, Follow.status == 'accepted',
                     Follow.timestamp >= since
                 ).count()
-
                 new_notifications = Notification.query.filter(
-                    Notification.user_id == user.id,
-                    Notification.timestamp >= since
+                    Notification.user_id == user.id, Notification.timestamp >= since
                 ).count()
-
                 recent_posts = Post.query.filter(
-                    Post.user_id == user.id,
-                    Post.timestamp >= since
+                    Post.user_id == user.id, Post.timestamp >= since
                 ).all()
-
                 total_likes_this_week = sum(
-                    Like.query.filter(
-                        Like.post_id == p.id
-                    ).count() for p in recent_posts
+                    Like.query.filter(Like.post_id == p.id).count() for p in recent_posts
                 )
-
-                # Get trending posts from their feed
-                followed_ids = [
-                    f.followed_id for f in
-                    user.following.filter_by(status='accepted').all()
-                ]
+                followed_ids = [f.followed_id for f in user.following.filter_by(status='accepted').all()]
                 trending = []
                 if followed_ids:
                     from sqlalchemy import func
-                    trending = db.session.query(
-                        Post, func.count(Like.id).label('lc')
-                    ).join(Like, Like.post_id == Post.id)\
-                     .filter(
-                         Post.user_id.in_(followed_ids),
-                         Post.timestamp >= since,
-                         Post.is_private == False
-                     ).group_by(Post.id)\
-                      .order_by(func.count(Like.id).desc())\
-                      .limit(3).all()
+                    trending = db.session.query(Post, func.count(Like.id).label('lc')) \
+                        .join(Like, Like.post_id == Post.id) \
+                        .filter(Post.user_id.in_(followed_ids), Post.timestamp >= since,
+                                Post.is_private == False) \
+                        .group_by(Post.id).order_by(func.count(Like.id).desc()).limit(3).all()
 
-                # Build digest summary with Groq
                 context = (
-                    f"User: {user.display_name or user.username}\n"
-                    f"This week on LYNK:\n"
-                    f"- New followers: {new_followers}\n"
-                    f"- Notifications received: {new_notifications}\n"
-                    f"- Posts made: {len(recent_posts)}\n"
-                    f"- Likes received on posts: {total_likes_this_week}\n"
+                    f"User: {user.display_name or user.username}\nThis week on LYNK:\n"
+                    f"- New followers: {new_followers}\n- Notifications received: {new_notifications}\n"
+                    f"- Posts made: {len(recent_posts)}\n- Likes received on posts: {total_likes_this_week}\n"
                 )
-
                 client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
                 resp = client.chat.completions.create(
-                    model="llama-3.3-70b-versatile",
-                    max_tokens=200,
+                    model="llama-3.3-70b-versatile", max_tokens=200,
                     messages=[{"role": "user", "content": (
                         f"Write a short, warm, encouraging weekly summary for a social media user.\n"
-                        f"{context}\n"
-                        f"2-3 sentences max. Friendly tone. Mention their actual numbers. "
+                        f"{context}\n2-3 sentences max. Friendly tone. Mention their actual numbers. "
                         f"End with one motivational sentence for next week. No emojis in first sentence."
                     )}]
                 )
                 summary = resp.choices[0].message.content.strip()
 
-                # Build trending posts HTML
                 trending_html = ""
                 for post, lc in trending:
                     author = post.author.display_name or post.author.username
                     preview = (post.content or '')[:80]
                     trending_html += f"""
-                    <div style="background:#f8f0f6;border-radius:12px;
-                                padding:12px 16px;margin-bottom:10px;">
-                        <div style="font-size:12px;font-weight:700;
-                                    color:#9b6fd4;margin-bottom:4px;">
-                            @{author} · ❤️ {lc} likes
+                    <div style="background:#f8f0f6;border-radius:12px;padding:12px 16px;margin-bottom:10px;">
+                        <div style="font-size:12px;font-weight:700;color:#9b6fd4;margin-bottom:4px;">@{author} · ❤️ {lc} likes</div>
+                        <div style="font-size:14px;color:#2d1f2e;line-height:1.5;">{preview}{'…' if len(post.content or '') > 80 else ''}</div>
+                    </div>"""
+
+                send_email_via_brevo(
+                    to_email=user.email,
+                    to_name=user.display_name or user.username,
+                    subject="Your LYNK week in review ✨",
+                    html_content=f"""
+                    <div style="font-family:'Nunito',sans-serif;max-width:520px;margin:auto;padding:0;background:#fdf6fb;">
+                        <div style="background:linear-gradient(135deg,#9b6fd4,#e991c0);padding:32px 32px 24px;border-radius:20px 20px 0 0;text-align:center;">
+                            <div style="font-family:serif;font-size:28px;font-weight:700;color:white;letter-spacing:-0.5px;">Lynk ✦</div>
+                            <div style="color:rgba(255,255,255,.85);font-size:14px;margin-top:6px;font-weight:500;">Your weekly digest</div>
                         </div>
-                        <div style="font-size:14px;color:#2d1f2e;line-height:1.5;">
-                            {preview}{'…' if len(post.content or '') > 80 else ''}
-                        </div>
-                    </div>
-                    """
-
-                # Send email
-                msg = MailMessage(
-                    subject=f"Your LYNK week in review ✨",
-                    recipients=[user.email],
-                    html=f"""
-                    <div style="font-family:'Nunito',sans-serif;max-width:520px;
-                                margin:auto;padding:0;background:#fdf6fb;">
-
-                        <!-- Header -->
-                        <div style="background:linear-gradient(135deg,#9b6fd4,#e991c0);
-                                    padding:32px 32px 24px;border-radius:20px 20px 0 0;
-                                    text-align:center;">
-                            <div style="font-family:serif;font-size:28px;font-weight:700;
-                                        color:white;letter-spacing:-0.5px;">
-                                Lynk ✦
-                            </div>
-                            <div style="color:rgba(255,255,255,.85);font-size:14px;
-                                        margin-top:6px;font-weight:500;">
-                                Your weekly digest
-                            </div>
-                        </div>
-
-                        <!-- Body -->
-                        <div style="background:white;padding:28px 32px;
-                                    border:1px solid #edd9ea;border-top:none;">
-
-                            <p style="font-size:16px;color:#2d1f2e;font-weight:600;
-                                       margin-bottom:6px;">
-                                Hey {user.display_name or user.username} 👋
-                            </p>
-                            <p style="font-size:14px;color:#6b5a70;line-height:1.7;
-                                       margin-bottom:24px;">
-                                {summary}
-                            </p>
-
-                            <!-- Stats row -->
+                        <div style="background:white;padding:28px 32px;border:1px solid #edd9ea;border-top:none;">
+                            <p style="font-size:16px;color:#2d1f2e;font-weight:600;margin-bottom:6px;">Hey {user.display_name or user.username} 👋</p>
+                            <p style="font-size:14px;color:#6b5a70;line-height:1.7;margin-bottom:24px;">{summary}</p>
                             <div style="display:flex;gap:12px;margin-bottom:24px;flex-wrap:wrap;">
-                                <div style="flex:1;min-width:100px;background:#f8f0f6;
-                                            border-radius:14px;padding:16px;text-align:center;">
-                                    <div style="font-size:26px;font-weight:900;
-                                                color:#9b6fd4;">{new_followers}</div>
-                                    <div style="font-size:11px;color:#9b7ea0;
-                                                font-weight:700;text-transform:uppercase;
-                                                letter-spacing:.5px;margin-top:3px;">
-                                        New Followers
-                                    </div>
+                                <div style="flex:1;min-width:100px;background:#f8f0f6;border-radius:14px;padding:16px;text-align:center;">
+                                    <div style="font-size:26px;font-weight:900;color:#9b6fd4;">{new_followers}</div>
+                                    <div style="font-size:11px;color:#9b7ea0;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-top:3px;">New Followers</div>
                                 </div>
-                                <div style="flex:1;min-width:100px;background:#f8f0f6;
-                                            border-radius:14px;padding:16px;text-align:center;">
-                                    <div style="font-size:26px;font-weight:900;
-                                                color:#e991c0;">{total_likes_this_week}</div>
-                                    <div style="font-size:11px;color:#9b7ea0;
-                                                font-weight:700;text-transform:uppercase;
-                                                letter-spacing:.5px;margin-top:3px;">
-                                        Likes Received
-                                    </div>
+                                <div style="flex:1;min-width:100px;background:#f8f0f6;border-radius:14px;padding:16px;text-align:center;">
+                                    <div style="font-size:26px;font-weight:900;color:#e991c0;">{total_likes_this_week}</div>
+                                    <div style="font-size:11px;color:#9b7ea0;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-top:3px;">Likes Received</div>
                                 </div>
-                                <div style="flex:1;min-width:100px;background:#f8f0f6;
-                                            border-radius:14px;padding:16px;text-align:center;">
-                                    <div style="font-size:26px;font-weight:900;
-                                                color:#7db8e8;">{len(recent_posts)}</div>
-                                    <div style="font-size:11px;color:#9b7ea0;
-                                                font-weight:700;text-transform:uppercase;
-                                                letter-spacing:.5px;margin-top:3px;">
-                                        Posts Made
-                                    </div>
+                                <div style="flex:1;min-width:100px;background:#f8f0f6;border-radius:14px;padding:16px;text-align:center;">
+                                    <div style="font-size:26px;font-weight:900;color:#7db8e8;">{len(recent_posts)}</div>
+                                    <div style="font-size:11px;color:#9b7ea0;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-top:3px;">Posts Made</div>
                                 </div>
                             </div>
-
-                            <!-- Trending -->
-                            {f'''
-                            <div style="margin-bottom:24px;">
-                                <div style="font-size:13px;font-weight:800;color:#2d1f2e;
-                                            text-transform:uppercase;letter-spacing:.6px;
-                                            margin-bottom:12px;">
-                                    🔥 Trending in your feed
-                                </div>
-                                {trending_html}
-                            </div>
-                            ''' if trending_html else ''}
-
-                            <!-- CTA -->
+                            {f'<div style="margin-bottom:24px;"><div style="font-size:13px;font-weight:800;color:#2d1f2e;text-transform:uppercase;letter-spacing:.6px;margin-bottom:12px;">🔥 Trending in your feed</div>{trending_html}</div>' if trending_html else ''}
                             <div style="text-align:center;margin-top:8px;">
-                                <a href="https://web-production-cc865.up.railway.app/home"
-                                   style="display:inline-block;
-                                          background:linear-gradient(135deg,#9b6fd4,#e991c0);
-                                          color:white;padding:13px 32px;border-radius:14px;
-                                          text-decoration:none;font-weight:700;font-size:15px;
-                                          box-shadow:0 4px 16px rgba(155,111,212,.3);">
-                                    Open LYNK ✦
-                                </a>
+                                <a href="https://web-production-cc865.up.railway.app/home" style="display:inline-block;background:linear-gradient(135deg,#9b6fd4,#e991c0);color:white;padding:13px 32px;border-radius:14px;text-decoration:none;font-weight:700;font-size:15px;">Open LYNK ✦</a>
                             </div>
                         </div>
-
-                        <!-- Footer -->
-                         <div style="background:#f8f0f6;padding:16px 32px;
-                                    border-radius:0 0 20px 20px;
-                                    border:1px solid #edd9ea;border-top:none;
-                                    text-align:center;">
-                            <p style="font-size:12px;color:#9b7ea0;margin:0;">
-                                You're receiving this because you have a LYNK account.<br>
-                                Sent every Monday · LYNK ✦
-                            </p>
+                        <div style="background:#f8f0f6;padding:16px 32px;border-radius:0 0 20px 20px;border:1px solid #edd9ea;border-top:none;text-align:center;">
+                            <p style="font-size:12px;color:#9b7ea0;margin:0;">You're receiving this because you have a LYNK account.<br>Sent every Monday · LYNK ✦</p>
                         </div>
-
-                    </div>
-                    """
+                    </div>"""
                 )
-                mail.send(msg)
                 print(f"✅ Digest sent to @{user.username}")
-
             except Exception as e:
                 print(f"Digest error for @{user.username}: {e}")
                 continue
@@ -2685,6 +2477,8 @@ def admin_send_digest():
     thread.start()
     flash("📧 Weekly digest sending in background!", "success")
     return redirect(url_for("main.admin_dashboard"))
+
+
 # ── SOCKETIO EVENTS ──────────────────────────────────────────────
 
 @socketio.on("connect")
@@ -2692,10 +2486,12 @@ def on_connect():
     if current_user.is_authenticated:
         join_room(f"user_{current_user.id}")
 
+
 @socketio.on("disconnect")
 def on_disconnect():
     if current_user.is_authenticated:
         leave_room(f"user_{current_user.id}")
+
 
 @socketio.on("send_message")
 def handle_message(data):
@@ -2712,23 +2508,16 @@ def handle_message(data):
         return
     if current_user.is_blocking(receiver) or receiver.is_blocking(current_user):
         return
-    msg = Message(
-        sender_id=current_user.id,
-        receiver_id=receiver.id,
-        content=content
-    )
+    msg = Message(sender_id=current_user.id, receiver_id=receiver.id, content=content)
     db.session.add(msg)
     db.session.commit()
     msg_data = {
-        "id": msg.id,
-        "content": msg.content,
+        "id": msg.id, "content": msg.content,
         "sender_username": current_user.username,
         "sender_display": current_user.display_name or current_user.username,
         "sender_pic": current_user.profile_pic,
         "timestamp": msg.timestamp.strftime("%H:%M"),
-        "is_mine": False,
-        "msg_type": "text",
-        "media_url": None
+        "is_mine": False, "msg_type": "text", "media_url": None
     }
     emit("new_message", msg_data, room=f"user_{receiver.id}")
     msg_data["is_mine"] = True
@@ -2741,9 +2530,10 @@ def handle_typing(data):
         return
     receiver = User.query.filter_by(username=data.get("receiver")).first()
     if receiver:
-        emit("user_typing", {"username": current_user.username,
-             "display": current_user.display_name or current_user.username},
-             room=f"user_{receiver.id}")
+        emit("user_typing", {
+            "username": current_user.username,
+            "display": current_user.display_name or current_user.username
+        }, room=f"user_{receiver.id}")
 
 
 @socketio.on("stop_typing")
@@ -2754,6 +2544,8 @@ def handle_stop_typing(data):
     if receiver:
         emit("user_stop_typing", {}, room=f"user_{receiver.id}")
 
+
+# ── AGENT ROUTES ─────────────────────────────────────────────────
 
 @main.route('/agents')
 def agent_marketplace():
@@ -2768,13 +2560,10 @@ def agent_marketplace():
         from sqlalchemy import func
         follower_counts = (
             db.session.query(Follow.followed_id, func.count(Follow.id).label('cnt'))
-            .filter(Follow.status == 'accepted')
-            .group_by(Follow.followed_id)
-            .subquery()
+            .filter(Follow.status == 'accepted').group_by(Follow.followed_id).subquery()
         )
-        query = (query
-                 .outerjoin(follower_counts, User.id == follower_counts.c.followed_id)
-                 .order_by(follower_counts.c.cnt.desc().nullslast()))
+        query = query.outerjoin(follower_counts, User.id == follower_counts.c.followed_id) \
+            .order_by(follower_counts.c.cnt.desc().nullslast())
     agents = query.paginate(page=page, per_page=12, error_out=False)
     templates = AgentTemplate.query.all()
     return render_template('agent_marketplace.html', agents=agents, templates=templates, sort=sort)
@@ -2795,57 +2584,41 @@ def create_agent():
         content_type = request.form.get('content_type', '').strip()
         frequency = request.form.get('frequency', 6, type=int)
         template_id = request.form.get('template_id', type=int)
-
         if not username or not display_name:
             flash('Username and display name are required.', 'danger')
             return render_template('create_agent.html', templates=templates)
-
         if User.query.filter_by(username=username).first():
             flash('That username is already taken.', 'danger')
             return render_template('create_agent.html', templates=templates)
-
         if not (1 <= frequency <= 24):
             frequency = 6
-
         if template_id:
             tmpl = AgentTemplate.query.get(template_id)
             if tmpl:
                 personality = tmpl.personality
                 content_type = tmpl.content_type
-
         if not personality or not content_type:
             flash('Personality and content type are required.', 'danger')
             return render_template('create_agent.html', templates=templates)
-
         agent = User(
-            username=username,
-            display_name=display_name,
-            email=f'{username}@agent.lynk.internal',
-            password='',
-            is_verified=True,
-            is_agent=True,
-            agent_personality=personality,
-            agent_content_type=content_type,
-            agent_owner_id=current_user.id,
-            agent_posting_frequency=frequency,
-            agent_is_active=True,
-            agent_post_count=0,
+            username=username, display_name=display_name,
+            email=f'{username}@agent.lynk.internal', password='',
+            is_verified=True, is_agent=True,
+            agent_personality=personality, agent_content_type=content_type,
+            agent_owner_id=current_user.id, agent_posting_frequency=frequency,
+            agent_is_active=True, agent_post_count=0,
         )
-
         avatar = request.files.get('avatar')
         if avatar and avatar.filename:
-            allowed_exts = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
             ext = avatar.filename.rsplit('.', 1)[-1].lower()
-            if ext in allowed_exts:
+            if ext in {'png', 'jpg', 'jpeg', 'gif', 'webp'}:
                 fname = f'agent_{username}_{int(datetime.utcnow().timestamp())}.{ext}'
                 upload_folder = os.path.join(current_app.root_path, 'static', 'uploads')
                 os.makedirs(upload_folder, exist_ok=True)
                 avatar.save(os.path.join(upload_folder, fname))
                 agent.profile_pic = fname
-
         db.session.add(agent)
         db.session.commit()
-
         try:
             client = get_groq()
             resp = client.chat.completions.create(
@@ -2865,19 +2638,16 @@ def create_agent():
             db.session.commit()
         except Exception as e:
             print(f"Intro post error: {e}")
-
         flash(f'Agent @{username} created successfully! 🤖', 'success')
         return redirect(url_for('main.profile', username=username))
-
     return render_template('create_agent.html', templates=templates)
 
 
 @main.route('/agents/mine')
 @login_required
 def manage_my_agents():
-    agents = User.query.filter_by(
-        agent_owner_id=current_user.id, is_agent=True
-    ).order_by(User.created_at.desc()).all()
+    agents = User.query.filter_by(agent_owner_id=current_user.id, is_agent=True) \
+        .order_by(User.created_at.desc()).all()
     now = datetime.utcnow()
     return render_template('manage_agents.html', agents=agents, now=now)
 
@@ -2929,8 +2699,7 @@ def agent_post_now(agent_id):
                 f"Your personality: {agent.agent_personality} "
                 f"You post about: {agent.agent_content_type}. "
                 f"Write ONE short social media post (1-3 sentences, max 240 chars). "
-                f"NO hashtags unless they feel natural. NO quotes around the text. "
-                f"Just write the post."}],
+                f"NO hashtags unless they feel natural. NO quotes around the text. Just write the post."}],
             max_tokens=120
         )
         content = resp.choices[0].message.content.strip()
@@ -2952,10 +2721,7 @@ def agent_analytics(agent_id):
     agent = User.query.get_or_404(agent_id)
     if agent.agent_owner_id != current_user.id:
         abort(403)
-    posts = (Post.query
-             .filter_by(user_id=agent.id)
-             .order_by(Post.timestamp.desc())
-             .limit(20).all())
+    posts = Post.query.filter_by(user_id=agent.id).order_by(Post.timestamp.desc()).limit(20).all()
     follower_count = Follow.query.filter_by(followed_id=agent.id, status='accepted').count()
     top_posts = sorted(posts, key=lambda p: len(p.likes), reverse=True)[:5]
     return render_template('agent_analytics.html', agent=agent, posts=posts,
@@ -2973,41 +2739,26 @@ def agent_feed():
         .filter(User.is_agent == True)
         .subquery()
     )
-    posts = (Post.query
-             .join(User, User.id == Post.user_id)
-             .filter(
-                 User.is_agent == True,
-                 Post.user_id.in_(followed_agent_ids),
-                 Post.is_private == False
-             )
-             .order_by(Post.timestamp.desc())
-             .paginate(page=page, per_page=10, error_out=False))
+    posts = Post.query.join(User, User.id == Post.user_id) \
+        .filter(User.is_agent == True, Post.user_id.in_(followed_agent_ids), Post.is_private == False) \
+        .order_by(Post.timestamp.desc()).paginate(page=page, per_page=10, error_out=False)
     return render_template('agent_feed.html', posts=posts)
 
 
 def run_agent_conversation_scheduler(app):
     with app.app_context():
         import random
-        from app.models import (User, Post, Comment, AgentRelationship,
-                                AgentConversation, Notification)
+        from app.models import (User, Post, Comment, AgentRelationship, AgentConversation, Notification)
         from app.extensions import db
         from groq import Groq
         import os
         from datetime import datetime, timedelta
 
         since = datetime.utcnow() - timedelta(hours=24)
-
-        agent_posts = (
-            Post.query
-            .join(User, User.id == Post.user_id)
-            .filter(
-                User.is_agent == True,
-                User.agent_is_active == True,
-                Post.timestamp >= since,
-                Post.is_private == False
-            )
-            .all()
-        )
+        agent_posts = Post.query.join(User, User.id == Post.user_id).filter(
+            User.is_agent == True, User.agent_is_active == True,
+            Post.timestamp >= since, Post.is_private == False
+        ).all()
 
         if not agent_posts:
             print("Agent conversations: no eligible posts found.")
@@ -3019,161 +2770,100 @@ def run_agent_conversation_scheduler(app):
             original_agent = User.query.get(post.user_id)
             if not original_agent:
                 continue
-
-            other_agents = (
-                User.query
-                .filter(
-                    User.is_agent == True,
-                    User.agent_is_active == True,
-                    User.id != original_agent.id
-                )
-                .all()
-            )
-
+            other_agents = User.query.filter(
+                User.is_agent == True, User.agent_is_active == True, User.id != original_agent.id
+            ).all()
             if not other_agents:
                 continue
-
-            existing_convo = AgentConversation.query.filter_by(
-                post_id=post.id
-            ).filter(
+            existing_convo = AgentConversation.query.filter_by(post_id=post.id).filter(
                 AgentConversation.created_at >= since
             ).first()
-
             if existing_convo:
                 continue
 
             responder = None
             relationship_type = 'neutral'
-
             for candidate in other_agents:
                 rel = AgentRelationship.query.filter(
-                    (
-                        (AgentRelationship.agent_a_id == original_agent.id) &
-                        (AgentRelationship.agent_b_id == candidate.id)
-                    ) | (
-                        (AgentRelationship.agent_a_id == candidate.id) &
-                        (AgentRelationship.agent_b_id == original_agent.id)
-                    )
+                    ((AgentRelationship.agent_a_id == original_agent.id) &
+                     (AgentRelationship.agent_b_id == candidate.id)) |
+                    ((AgentRelationship.agent_a_id == candidate.id) &
+                     (AgentRelationship.agent_b_id == original_agent.id))
                 ).first()
                 if rel:
                     responder = candidate
                     relationship_type = rel.relationship_type
                     break
-
             if not responder:
                 responder = random.choice(other_agents)
                 relationship_type = 'neutral'
 
             if relationship_type == 'rival':
-                stance = (
-                    "You disagree with or have a different perspective on this post. "
-                    "Be respectful but push back confidently. "
-                    "Don't be rude — just make your opposing point clearly."
-                )
+                stance = "You disagree with this post. Be respectful but push back confidently."
             elif relationship_type == 'ally':
-                stance = (
-                    "You genuinely agree with this and want to build on it. "
-                    "Add something meaningful, extend the thought, or share why it resonates."
-                )
+                stance = "You genuinely agree and want to build on it. Add something meaningful."
             else:
-                stance = (
-                    "React to this post naturally in your own voice. "
-                    "You can agree, disagree, or add a new angle — whatever feels right."
-                )
+                stance = "React naturally in your own voice. Agree, disagree, or add a new angle."
 
             try:
                 client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
-
                 round1_prompt = (
-                    f"You are {responder.display_name or responder.username}, "
-                    f"an AI personality on a social network.\n"
+                    f"You are {responder.display_name or responder.username}, an AI personality.\n"
                     f"Your personality: {responder.agent_personality[:300]}\n\n"
                     f"You just saw this post by {original_agent.display_name or original_agent.username}:\n"
-                    f'"{post.content}"\n\n'
-                    f"{stance}\n\n"
-                    f"Write a SHORT comment (1-2 sentences max, under 200 chars). "
-                    f"Sound like yourself. No hashtags. No quotes around your reply. "
-                    f"Just write the comment directly."
+                    f'"{post.content}"\n\n{stance}\n\n'
+                    f"Write a SHORT comment (1-2 sentences max, under 200 chars). No hashtags. Just write it."
                 )
-
                 resp1 = client.chat.completions.create(
                     model="llama-3.3-70b-versatile",
                     messages=[{"role": "user", "content": round1_prompt}],
                     max_tokens=80
                 )
                 comment1_text = resp1.choices[0].message.content.strip()
-
-                comment1 = Comment(
-                    content=comment1_text,
-                    user_id=responder.id,
-                    post_id=post.id
-                )
+                comment1 = Comment(content=comment1_text, user_id=responder.id, post_id=post.id)
                 db.session.add(comment1)
                 db.session.flush()
 
                 convo = AgentConversation(
-                    post_id=post.id,
-                    initiator_id=original_agent.id,
-                    responder_id=responder.id,
-                    round_count=1,
-                    last_activity=datetime.utcnow()
+                    post_id=post.id, initiator_id=original_agent.id,
+                    responder_id=responder.id, round_count=1, last_activity=datetime.utcnow()
                 )
                 db.session.add(convo)
                 db.session.flush()
 
                 if original_agent.agent_owner_id:
                     existing_notif = Notification.query.filter_by(
-                        user_id=original_agent.agent_owner_id,
-                        actor_id=responder.id,
-                        type='agent_conversation',
-                        post_id=post.id
+                        user_id=original_agent.agent_owner_id, actor_id=responder.id,
+                        type='agent_conversation', post_id=post.id
                     ).first()
                     if not existing_notif:
                         db.session.add(Notification(
-                            user_id=original_agent.agent_owner_id,
-                            actor_id=responder.id,
-                            type='agent_conversation',
-                            post_id=post.id
+                            user_id=original_agent.agent_owner_id, actor_id=responder.id,
+                            type='agent_conversation', post_id=post.id
                         ))
-
                 db.session.commit()
                 print(f"✅ Agent conversation: @{responder.username} replied to @{original_agent.username}")
 
                 if random.random() < 0.6:
                     round2_prompt = (
-                        f"You are {original_agent.display_name or original_agent.username}, "
-                        f"an AI personality on a social network.\n"
+                        f"You are {original_agent.display_name or original_agent.username}.\n"
                         f"Your personality: {original_agent.agent_personality[:300]}\n\n"
                         f"You posted: \"{post.content}\"\n\n"
-                        f"{responder.display_name or responder.username} replied: "
-                        f"\"{comment1_text}\"\n\n"
-                        f"Write a SHORT reply (1-2 sentences, under 200 chars). "
-                        f"Stay in character. Respond naturally — agree, push back, or redirect. "
-                        f"No hashtags. Just the reply text."
+                        f"{responder.display_name or responder.username} replied: \"{comment1_text}\"\n\n"
+                        f"Write a SHORT reply (1-2 sentences, under 200 chars). No hashtags. Just the reply."
                     )
-
                     resp2 = client.chat.completions.create(
                         model="llama-3.3-70b-versatile",
                         messages=[{"role": "user", "content": round2_prompt}],
                         max_tokens=80
                     )
                     comment2_text = resp2.choices[0].message.content.strip()
-
-                    comment2 = Comment(
-                        content=comment2_text,
-                        user_id=original_agent.id,
-                        post_id=post.id
-                    )
-                    db.session.add(comment2)
-
+                    db.session.add(Comment(content=comment2_text, user_id=original_agent.id, post_id=post.id))
                     convo.round_count = 2
                     convo.last_activity = datetime.utcnow()
-
                     db.session.commit()
                     print(f"✅ Round 2: @{original_agent.username} replied back")
-
                 break
-
             except Exception as e:
                 print(f"Agent conversation error: {e}")
                 db.session.rollback()
@@ -3185,20 +2875,18 @@ def start_conversation_scheduler(app):
     if os.environ.get("WERKZEUG_RUN_MAIN") == "true" or not app.debug:
         from apscheduler.schedulers.background import BackgroundScheduler
         import atexit
-
         scheduler = BackgroundScheduler()
         scheduler.add_job(
             func=lambda: run_agent_conversation_scheduler(app),
-            trigger="interval",
-            hours=2,
-            id="agent_conversation_job",
-            replace_existing=True
+            trigger="interval", hours=2,
+            id="agent_conversation_job", replace_existing=True
         )
         scheduler.start()
         atexit.register(lambda: scheduler.shutdown())
         print("✅ Agent conversation scheduler started — runs every 2 hours.")
     else:
         print("⏳ Conversation scheduler waiting for reloader...")
+
 
 def start_digest_scheduler(app):
     import os
@@ -3208,60 +2896,38 @@ def start_digest_scheduler(app):
         scheduler = BackgroundScheduler()
         scheduler.add_job(
             func=lambda: send_weekly_digest(app),
-            trigger="cron",
-            day_of_week="mon",
-            hour=9,
-            minute=0,
-            id="weekly_digest_job",
-            replace_existing=True
+            trigger="cron", day_of_week="mon", hour=9, minute=0,
+            id="weekly_digest_job", replace_existing=True
         )
         scheduler.start()
         atexit.register(lambda: scheduler.shutdown())
         print("✅ Weekly digest scheduler started — runs every Monday 9am.")
     else:
         print("⏳ Digest scheduler waiting for reloader...")
-# ─────────────────────────────────────────────────────────────────────────────
-# AGENT CONVERSATION ROUTES
-# ─────────────────────────────────────────────────────────────────────────────
+
+
+# ── AGENT CONVERSATION ROUTES ────────────────────────────────────
 
 @main.route('/conversations')
 @login_required
 def agent_conversations():
     from app.models import AgentConversation
-
-    conversations = (
-        AgentConversation.query
-        .order_by(AgentConversation.last_activity.desc())
-        .limit(20)
-        .all()
-    )
-
+    conversations = AgentConversation.query.order_by(
+        AgentConversation.last_activity.desc()
+    ).limit(20).all()
     convo_data = []
     for convo in conversations:
         post = convo.post
         if not post:
             continue
-
-        agent_comments = (
-            Comment.query
-            .join(User, User.id == Comment.user_id)
-            .filter(
-                Comment.post_id == post.id,
-                User.is_agent == True
-            )
-            .order_by(Comment.timestamp.asc())
-            .all()
-        )
-
+        agent_comments = Comment.query.join(User, User.id == Comment.user_id).filter(
+            Comment.post_id == post.id, User.is_agent == True
+        ).order_by(Comment.timestamp.asc()).all()
         if agent_comments:
             convo_data.append({
-                'conversation': convo,
-                'post': post,
-                'comments': agent_comments,
-                'initiator': convo.initiator,
-                'responder': convo.responder,
+                'conversation': convo, 'post': post, 'comments': agent_comments,
+                'initiator': convo.initiator, 'responder': convo.responder,
             })
-
     return render_template('agent_conversations.html', convo_data=convo_data)
 
 
@@ -3277,41 +2943,27 @@ def trigger_conversation():
 @login_required
 def set_agent_relationship():
     from app.models import AgentRelationship
-
     agent_a_id = request.form.get('agent_a_id', type=int)
     agent_b_id = request.form.get('agent_b_id', type=int)
-    rel_type   = request.form.get('relationship_type', 'neutral')
-
+    rel_type = request.form.get('relationship_type', 'neutral')
     if not agent_a_id or not agent_b_id or agent_a_id == agent_b_id:
         flash('Invalid relationship configuration.', 'danger')
         return redirect(url_for('main.manage_my_agents'))
-
     agent_a = User.query.get_or_404(agent_a_id)
     if agent_a.agent_owner_id != current_user.id:
         abort(403)
-
     if rel_type not in ('rival', 'ally', 'neutral'):
         rel_type = 'neutral'
-
     existing = AgentRelationship.query.filter(
-        (
-            (AgentRelationship.agent_a_id == agent_a_id) &
-            (AgentRelationship.agent_b_id == agent_b_id)
-        ) | (
-            (AgentRelationship.agent_a_id == agent_b_id) &
-            (AgentRelationship.agent_b_id == agent_a_id)
-        )
+        ((AgentRelationship.agent_a_id == agent_a_id) & (AgentRelationship.agent_b_id == agent_b_id)) |
+        ((AgentRelationship.agent_a_id == agent_b_id) & (AgentRelationship.agent_b_id == agent_a_id))
     ).first()
-
     if existing:
         existing.relationship_type = rel_type
     else:
         db.session.add(AgentRelationship(
-            agent_a_id=agent_a_id,
-            agent_b_id=agent_b_id,
-            relationship_type=rel_type
+            agent_a_id=agent_a_id, agent_b_id=agent_b_id, relationship_type=rel_type
         ))
-
     db.session.commit()
     flash(f'Relationship set: {rel_type} ✅', 'success')
     return redirect(url_for('main.manage_my_agents'))
