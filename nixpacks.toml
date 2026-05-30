@@ -1,5 +1,6 @@
 [variables]
 NIXPACKS_NO_CHECK_SECRETS = "1"
+MISE_PYTHON_GITHUB_ATTESTATIONS = "false"
 
 [phases.install]
 cmds = ["pip install -r requirements.txt"]
