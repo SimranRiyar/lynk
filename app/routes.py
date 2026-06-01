@@ -923,6 +923,10 @@ def delete_post(post_id):
     if post.user_id != current_user.id:
         flash("Unauthorized action.", "danger")
         return redirect(url_for("main.home"))
+    Notification.query.filter_by(post_id=post_id).delete()
+    Like.query.filter_by(post_id=post_id).delete()
+    Comment.query.filter_by(post_id=post_id).delete()
+    Reaction.query.filter_by(post_id=post_id).delete()
     db.session.delete(post)
     db.session.commit()
     flash("Post deleted.", "success")
